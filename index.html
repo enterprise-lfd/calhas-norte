@@ -8,6 +8,10 @@
     <!-- Bibliotecas de Estilo e Ícones -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js para Gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS para Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     
     <script>
         tailwind.config = {
@@ -45,6 +49,8 @@
         .kanban-col::-webkit-scrollbar { width: 4px; }
         .kanban-col::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
         .sidebar-transition { transition: transform 0.3s ease-in-out; }
+        .table-container { overflow-x: auto; }
+        .table-container table { min-width: 100%; } 
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased h-screen flex overflow-hidden" x-data="appData()" x-cloak>
@@ -54,8 +60,8 @@
         <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border-t-4 border-brand-600">
             <div class="text-center mb-8 flex flex-col items-center">
                 <!-- Logo no Login -->
-                <div class="w-32 h-32 mb-4 flex items-center justify-center">
-                    <img src="image_a49767.png" alt="Calhas Norte" class="object-contain max-w-full max-h-full" 
+                <div class="w-48 h-48 mb-4 flex items-center justify-center">
+                    <img src="https://res.cloudinary.com/ddkundhsl/image/upload/v1767468666/Logotipo_-_Pratta_Tech_2_hkdw3e.png" alt="Calhas Norte" class="object-contain max-w-full max-h-full" 
                          onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'inline-flex items-center justify-center w-24 h-24 rounded-full bg-brand-100\'><i data-lucide=\'hammer\' class=\'w-12 h-12 text-brand-600\'></i></div>'">
                 </div>
                 <h1 class="text-2xl font-bold text-slate-800">Calhas Norte</h1>
@@ -90,11 +96,11 @@
              class="fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 text-white transform lg:transform-none lg:static sidebar-transition flex flex-col"
              :class="{'translate-x-0': sidebarOpen, '-translate-x-full': !sidebarOpen && window.innerWidth < 1024}">
             
-            <div class="h-20 flex items-center px-6 bg-slate-800 border-b border-slate-700">
+            <div class="h-24 flex items-center px-6 bg-slate-800 border-b border-slate-700">
                 <div class="flex items-center gap-3 w-full">
                     <!-- Logo na Sidebar -->
-                    <div class="h-10 w-10 flex-shrink-0 flex items-center justify-center bg-white rounded-lg p-1">
-                        <img src="image_a49767.png" alt="Logo" class="object-contain max-w-full max-h-full"
+                    <div class="h-16 w-16 flex-shrink-0 flex items-center justify-center bg-white rounded-lg p-1">
+                        <img src="https://res.cloudinary.com/ddkundhsl/image/upload/v1767468666/Logotipo_-_Pratta_Tech_2_hkdw3e.png" alt="Logo" class="object-contain max-w-full max-h-full"
                              onerror="this.onerror=null; this.parentElement.innerHTML='<i data-lucide=\'hammer\' class=\'w-6 h-6 text-brand-600\'></i>'">
                     </div>
                     <span class="font-bold text-lg tracking-tight truncate">Calhas<span class="text-brand-400">Norte</span></span>
@@ -105,31 +111,80 @@
             </div>
 
             <nav class="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
-                <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Comercial & Obras</p>
-                
-                <a href="#" @click.prevent="setView('kanban')" 
-                   class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors"
-                   :class="currentView === 'kanban' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'">
-                    <i data-lucide="trello" class="mr-3 h-5 w-5 flex-shrink-0" :class="currentView === 'kanban' ? 'text-white' : 'text-slate-400 group-hover:text-white'"></i>
-                    Quadro de Serviços
-                </a>
+                <div class="space-y-1">
+                    <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-2">Comercial & Obras</p>
+                    
+                    <a href="#" @click.prevent="setView('kanban')" 
+                       class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors"
+                       :class="currentView === 'kanban' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'">
+                        <i data-lucide="trello" class="mr-3 h-5 w-5 flex-shrink-0" :class="currentView === 'kanban' ? 'text-white' : 'text-slate-400 group-hover:text-white'"></i>
+                        Quadro de Serviços
+                    </a>
 
-                <a href="#" @click.prevent="setView('list')" 
-                   class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors"
-                   :class="currentView === 'list' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'">
-                    <i data-lucide="list" class="mr-3 h-5 w-5 flex-shrink-0" :class="currentView === 'list' ? 'text-white' : 'text-slate-400 group-hover:text-white'"></i>
-                    Lista de Serviços
-                </a>
+                    <a href="#" @click.prevent="setView('list')" 
+                       class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors"
+                       :class="currentView === 'list' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'">
+                        <i data-lucide="list" class="mr-3 h-5 w-5 flex-shrink-0" :class="currentView === 'list' ? 'text-white' : 'text-slate-400 group-hover:text-white'"></i>
+                        Lista de Serviços
+                    </a>
 
-                <a href="#" @click.prevent="setView('invoices')" 
-                   class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors"
-                   :class="currentView === 'invoices' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'">
-                    <i data-lucide="file-text" class="mr-3 h-5 w-5 flex-shrink-0" :class="currentView === 'invoices' ? 'text-white' : 'text-slate-400 group-hover:text-white'"></i>
-                    Emissão de NF
-                </a>
+                    <a href="#" @click.prevent="setView('counter')" 
+                       class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors"
+                       :class="currentView === 'counter' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'">
+                        <i data-lucide="shopping-bag" class="mr-3 h-5 w-5 flex-shrink-0" :class="currentView === 'counter' ? 'text-white' : 'text-slate-400 group-hover:text-white'"></i>
+                        Venda Balcão
+                    </a>
 
-                <div class="mt-6">
+                    <a href="#" @click.prevent="setView('costs')" 
+                       class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors"
+                       :class="currentView === 'costs' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'">
+                        <i data-lucide="calculator" class="mr-3 h-5 w-5 flex-shrink-0" :class="currentView === 'costs' ? 'text-white' : 'text-slate-400 group-hover:text-white'"></i>
+                        Custos de Obra
+                    </a>
+
+                    <a href="#" @click.prevent="setView('invoices')" 
+                       class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors"
+                       :class="currentView === 'invoices' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'">
+                        <i data-lucide="file-text" class="mr-3 h-5 w-5 flex-shrink-0" :class="currentView === 'invoices' ? 'text-white' : 'text-slate-400 group-hover:text-white'"></i>
+                        Emissão de NF
+                    </a>
+                </div>
+
+                <!-- Espaçamento AUMENTADO (mt-10) entre sessões -->
+                <div class="mt-10 border-t border-slate-700 pt-4">
+                    <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Cadastros Gerais</p>
+                    
+                    <a href="#" @click.prevent="setView('clients')" 
+                       class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors"
+                       :class="currentView === 'clients' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'">
+                        <i data-lucide="user-plus" class="mr-3 h-5 w-5 flex-shrink-0" :class="currentView === 'clients' ? 'text-white' : 'text-slate-400 group-hover:text-white'"></i>
+                        Clientes
+                    </a>
+
+                    <a href="#" @click.prevent="setView('products_mgr')" 
+                       class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors"
+                       :class="currentView === 'products_mgr' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'">
+                        <i data-lucide="tag" class="mr-3 h-5 w-5 flex-shrink-0" :class="currentView === 'products_mgr' ? 'text-white' : 'text-slate-400 group-hover:text-white'"></i>
+                        Produtos
+                    </a>
+
+                    <a href="#" @click.prevent="setView('taxes')" 
+                       class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors"
+                       :class="currentView === 'taxes' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'">
+                        <i data-lucide="landmark" class="mr-3 h-5 w-5 flex-shrink-0" :class="currentView === 'taxes' ? 'text-white' : 'text-slate-400 group-hover:text-white'"></i>
+                        Impostos
+                    </a>
+                </div>
+
+                <div class="mt-10 border-t border-slate-700 pt-4">
                     <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Gestão Interna</p>
+
+                    <a href="#" @click.prevent="setView('profitability')" 
+                       class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors"
+                       :class="currentView === 'profitability' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'">
+                        <i data-lucide="pie-chart" class="mr-3 h-5 w-5 flex-shrink-0" :class="currentView === 'profitability' ? 'text-white' : 'text-slate-400 group-hover:text-white'"></i>
+                        DRE por Obra
+                    </a>
                     
                     <a href="#" @click.prevent="setView('employees')" 
                        class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors"
@@ -175,7 +230,43 @@
                 </div>
 
                 <div class="flex items-center gap-4">
-                    <button @click="openModal()" class="bg-accent-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm" x-show="currentView !== 'invoices'">
+                    <!-- Botões de Ação para Clientes e Produtos -->
+                    <div x-show="currentView === 'clients'" class="flex gap-2">
+                        <button @click="deleteAllClients()" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 border border-red-200">
+                            <i data-lucide="trash" class="w-4 h-4"></i> Excluir Todos
+                        </button>
+                        <button @click="exportToExcel('clients')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                            <i data-lucide="download" class="w-4 h-4"></i> Excel
+                        </button>
+                        <button @click="$refs.clientFile.click()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                            <i data-lucide="upload" class="w-4 h-4"></i> Importar CSV
+                        </button>
+                        <input type="file" x-ref="clientFile" class="hidden" accept=".csv" @change="handleFileUpload($event, 'clients')">
+                    </div>
+                    <div x-show="currentView === 'products_mgr'" class="flex gap-2">
+                        <button @click="deleteAllProducts()" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 border border-red-200">
+                            <i data-lucide="trash" class="w-4 h-4"></i> Excluir Todos
+                        </button>
+                         <button @click="exportToExcel('products')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                            <i data-lucide="download" class="w-4 h-4"></i> Excel
+                        </button>
+                        <button @click="$refs.productFile.click()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                            <i data-lucide="upload" class="w-4 h-4"></i> Importar CSV
+                        </button>
+                        <input type="file" x-ref="productFile" class="hidden" accept=".csv" @change="handleFileUpload($event, 'products')">
+                    </div>
+                    <!-- Botões para Impostos -->
+                    <div x-show="currentView === 'taxes'" class="flex gap-2">
+                        <button @click="exportToExcel('taxes')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                            <i data-lucide="download" class="w-4 h-4"></i> Excel
+                        </button>
+                        <button @click="$refs.taxFile.click()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                            <i data-lucide="upload" class="w-4 h-4"></i> Importar CSV
+                        </button>
+                        <input type="file" x-ref="taxFile" class="hidden" accept=".csv" @change="handleFileUpload($event, 'taxes')">
+                    </div>
+
+                    <button @click="openModal()" class="bg-accent-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm" x-show="currentView !== 'invoices' && currentView !== 'profitability'">
                         <i data-lucide="plus" class="w-4 h-4"></i> 
                         <span class="hidden sm:inline" x-text="addButtonText"></span>
                     </button>
@@ -185,22 +276,284 @@
             <!-- Área Principal -->
             <main class="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6">
                 
+                <!-- Filtros para Views de Obras, Balcão e DRE -->
+                <div x-show="['kanban', 'list', 'counter', 'profitability'].includes(currentView)" class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                    <!-- Filtro ID -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-bold text-slate-500 uppercase">Buscar ID Obra</label>
+                        <input type="text" x-model="filterId" placeholder="Ex: 1001" class="border border-slate-300 rounded px-2 py-1.5 text-sm w-full">
+                    </div>
+                    <!-- Filtro Serviço (Esconder no DRE) -->
+                    <div class="flex flex-col gap-1" x-show="currentView !== 'profitability'">
+                        <label class="text-xs font-bold text-slate-500 uppercase">Serviço</label>
+                        <select x-model="filterService" class="border border-slate-300 rounded px-2 py-1.5 text-sm w-full bg-white">
+                            <option value="">Todos</option>
+                            <option value="Calhas">Calhas</option>
+                            <option value="Rufos">Rufos</option>
+                            <option value="Completo">Completo</option>
+                            <option value="Limpeza">Limpeza</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+                    <!-- Filtro Status (Esconder no DRE) -->
+                    <div class="flex flex-col gap-1" x-show="currentView !== 'profitability'">
+                        <label class="text-xs font-bold text-slate-500 uppercase">Status</label>
+                        <select x-model="filterStatus" class="border border-slate-300 rounded px-2 py-1.5 text-sm w-full bg-white">
+                            <option value="">Todos</option>
+                            <template x-for="st in kanbanColumns" :key="st.id">
+                                <option :value="st.id" x-text="st.label"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <!-- Filtro Data Tipo (Esconder no DRE se usar apenas um tipo) -->
+                    <div class="flex flex-col gap-1" x-show="currentView !== 'profitability'">
+                        <label class="text-xs font-bold text-slate-500 uppercase">Data Ref.</label>
+                        <select x-model="filterDateType" class="border border-slate-300 rounded px-2 py-1.5 text-sm bg-white cursor-pointer hover:border-brand-500 focus:ring-brand-500 w-full">
+                            <option value="createdAt">Criação (Geral)</option>
+                            <option value="budgetDate">Orçamento</option>
+                            <option value="contractDate">Contrato</option>
+                            <option value="billingDate">Faturamento</option>
+                            <option value="revenueDate">Receita</option>
+                        </select>
+                    </div>
+                    <!-- Filtro Datas Intervalo -->
+                    <div class="flex gap-2 w-full col-span-2 lg:col-span-2">
+                        <div class="flex-1 flex flex-col gap-1">
+                            <label class="text-xs font-bold text-slate-500 uppercase">De</label>
+                            <input type="date" x-model="filterStartDate" class="border border-slate-300 rounded px-2 py-1.5 text-sm w-full">
+                        </div>
+                        <div class="flex-1 flex flex-col gap-1">
+                            <label class="text-xs font-bold text-slate-500 uppercase">Até</label>
+                            <input type="date" x-model="filterEndDate" class="border border-slate-300 rounded px-2 py-1.5 text-sm w-full">
+                        </div>
+                    </div>
+                    <div class="sm:col-span-2 lg:col-span-1 text-right self-end">
+                        <button @click="resetFilters()" class="text-sm text-brand-600 hover:text-brand-800 underline">Limpar Filtros</button>
+                    </div>
+                </div>
+
+                <!-- Filtros para Clientes, Produtos e Impostos -->
+                <div x-show="['clients', 'products_mgr', 'taxes'].includes(currentView)" class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                    <div class="flex flex-col gap-1 sm:col-span-2">
+                        <label class="text-xs font-bold text-slate-500 uppercase">Buscar</label>
+                        <input type="text" x-model="filterGeneral" placeholder="Digite para buscar..." class="border border-slate-300 rounded px-2 py-1.5 text-sm w-full">
+                    </div>
+                    <div class="text-right self-end">
+                        <button @click="filterGeneral = ''" class="text-sm text-brand-600 hover:text-brand-800 underline">Limpar Filtros</button>
+                    </div>
+                </div>
+
                 <!-- KPIs (Apenas para views de Obras) -->
-                <div x-show="['kanban', 'list'].includes(currentView)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div x-show="['kanban', 'list', 'counter'].includes(currentView)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                      <div class="bg-white px-4 py-3 rounded-lg border border-slate-200 shadow-sm flex items-center gap-3">
-                        <div class="p-2 bg-blue-100 rounded text-blue-600"><i data-lucide="dollar-sign" class="w-5 h-5"></i></div>
+                        <div class="p-2 bg-blue-100 rounded text-blue-600"><i data-lucide="wrench" class="w-5 h-5"></i></div>
                         <div>
-                            <p class="text-xs text-slate-500 uppercase font-bold">Potencial Total</p>
-                            <p class="font-bold text-slate-800" x-text="formatMoney(kpis.totalValue)"></p>
+                            <p class="text-xs text-slate-500 uppercase font-bold">Total Serviços</p>
+                            <p class="font-bold text-slate-800" x-text="formatMoney(kpis.totalServiceOnly)"></p>
+                        </div>
+                     </div>
+                     <div class="bg-white px-4 py-3 rounded-lg border border-slate-200 shadow-sm flex items-center gap-3">
+                        <div class="p-2 bg-indigo-100 rounded text-indigo-600"><i data-lucide="user-cog" class="w-5 h-5"></i></div>
+                        <div>
+                            <p class="text-xs text-slate-500 uppercase font-bold">Total Mão de Obra</p>
+                            <p class="font-bold text-slate-800" x-text="formatMoney(kpis.totalLaborOnly)"></p>
                         </div>
                      </div>
                      <div class="bg-white px-4 py-3 rounded-lg border border-slate-200 shadow-sm flex items-center gap-3">
                         <div class="p-2 bg-orange-100 rounded text-orange-600"><i data-lucide="hard-hat" class="w-5 h-5"></i></div>
                         <div>
-                            <p class="text-xs text-slate-500 uppercase font-bold">Em Obras</p>
+                            <p class="text-xs text-slate-500 uppercase font-bold" x-text="currentView === 'counter' ? 'Vendas Balcão' : 'Pedidos em Obras'"></p>
                             <p class="font-bold text-slate-800 text-lg" x-text="kpis.activeWorks"></p>
                         </div>
                      </div>
+                </div>
+
+                <!-- VIEW 8: DRE POR OBRA -->
+                <div x-show="currentView === 'profitability'" class="space-y-6">
+                     <!-- KPIs DRE -->
+                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                         <div class="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500">
+                             <h4 class="text-xs font-bold text-slate-500 uppercase mb-1">Total Serviços (Receita)</h4>
+                             <p class="text-2xl font-bold text-slate-800" x-text="formatMoney(profitabilityData.totalServices)"></p>
+                         </div>
+                         <div class="bg-white p-4 rounded-lg shadow border-l-4 border-red-500">
+                             <h4 class="text-xs font-bold text-slate-500 uppercase mb-1">Custos Totais</h4>
+                             <p class="text-2xl font-bold text-slate-800" x-text="formatMoney(profitabilityData.totalCosts)"></p>
+                         </div>
+                         <div class="bg-white p-4 rounded-lg shadow border-l-4" :class="profitabilityData.grossProfit >= 0 ? 'border-green-500' : 'border-red-600'">
+                             <h4 class="text-xs font-bold text-slate-500 uppercase mb-1">Lucro sobre Serviços</h4>
+                             <p class="text-2xl font-bold" :class="profitabilityData.grossProfit >= 0 ? 'text-green-600' : 'text-red-600'" x-text="formatMoney(profitabilityData.grossProfit)"></p>
+                             <p class="text-xs text-slate-400 mt-1">Margem: <span x-text="profitabilityData.margin + '%'"></span></p>
+                         </div>
+                     </div>
+
+                     <!-- Gráfico DRE -->
+                     <div class="bg-white p-4 rounded-lg shadow border border-slate-200">
+                         <h3 class="text-sm font-bold text-slate-700 mb-4">Comparativo Serviços vs Custos</h3>
+                         <div class="h-64 relative">
+                             <canvas id="profitabilityChart"></canvas>
+                         </div>
+                     </div>
+
+                     <!-- Tabela Detalhada DRE -->
+                     <div class="bg-white rounded-lg shadow overflow-hidden border border-slate-200 table-container">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-slate-200 w-full">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID Obra</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Cliente</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Vlr. Contrato</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Total Serviços</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Custos Totais</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Lucro R$</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Margem %</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-slate-200">
+                                    <template x-for="row in profitabilityData.rows" :key="row.id">
+                                        <tr class="hover:bg-slate-50">
+                                            <td class="px-6 py-4 text-xs font-bold text-slate-500" x-text="'#' + row.customId"></td>
+                                            <td class="px-6 py-4 text-sm font-medium text-slate-900" x-text="row.clientName"></td>
+                                            <td class="px-6 py-4 text-sm text-right text-slate-500 font-medium" x-text="formatMoney(row.contractValue)"></td>
+                                            <td class="px-6 py-4 text-sm text-right text-blue-700 font-bold" x-text="formatMoney(row.totalServices)"></td>
+                                            <td class="px-6 py-4 text-sm text-right text-red-600" x-text="formatMoney(row.cost)"></td>
+                                            <td class="px-6 py-4 text-sm text-right font-bold" :class="row.profit >= 0 ? 'text-green-600' : 'text-red-600'" x-text="formatMoney(row.profit)"></td>
+                                            <td class="px-6 py-4 text-sm text-right" x-text="row.margin + '%'"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                     </div>
+                </div>
+
+                <!-- VIEW 9: CLIENTES (ATUALIZADA) -->
+                <div x-show="currentView === 'clients'" class="bg-white rounded-lg shadow overflow-hidden border border-slate-200 table-container">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Cód</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-[25%]">Nome / Razão</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">CNPJ/CPF</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Contato</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Cidade/UF</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-slate-200">
+                                <!-- USANDO sortedFilteredClients -->
+                                <template x-for="client in sortedFilteredClients" :key="client.id">
+                                    <tr class="hover:bg-slate-50 transition">
+                                        <td class="px-6 py-4 text-xs font-bold text-slate-500 whitespace-nowrap" x-text="client.code"></td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-medium text-slate-900" x-text="client.fantasy || client.name"></div>
+                                            <div class="text-xs text-slate-500 truncate max-w-[200px]" x-text="client.name"></div>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap" x-text="formatCPF(client.document)"></td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm text-slate-700" x-text="formatPhone(client.cell || client.phone)"></div>
+                                            <div class="text-xs text-slate-500 truncate max-w-[150px]" x-text="client.email"></div>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap">
+                                            <span x-text="client.city"></span>/<span x-text="client.state"></span>
+                                        </td>
+                                        <td class="px-6 py-4 text-right flex justify-end gap-2 whitespace-nowrap">
+                                            <button @click="editItem(client)" class="text-brand-600 hover:text-brand-900"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                            <button @click="deleteItem(client)" class="text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="clients.length === 0">
+                                    <td colspan="6" class="px-6 py-12 text-center text-slate-500">Nenhum cliente cadastrado.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- VIEW 10: PRODUTOS (ATUALIZADA) -->
+                <div x-show="currentView === 'products_mgr'" class="bg-white rounded-lg shadow overflow-hidden border border-slate-200 table-container">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Cód</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID Aux</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Descrição</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Und</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Preço Venda</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Imposto</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Grupo</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Fornecedor</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-slate-200">
+                                <!-- USANDO sortedFilteredProducts -->
+                                <template x-for="prod in sortedFilteredProducts" :key="prod.id">
+                                    <tr class="hover:bg-slate-50 transition">
+                                        <td class="px-6 py-4 text-xs font-bold text-slate-500 whitespace-nowrap" x-text="prod.code"></td>
+                                        <td class="px-6 py-4 text-xs text-slate-500 whitespace-nowrap" x-text="prod.idCode || '-'"></td>
+                                        <td class="px-6 py-4 text-sm font-medium text-slate-900 whitespace-nowrap" x-text="prod.description"></td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap" x-text="prod.unit || '-'"></td>
+                                        <td class="px-6 py-4 text-sm font-bold text-slate-700 whitespace-nowrap" x-text="formatMoney(prod.price)"></td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap" x-text="prod.taxCode || '-'"></td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap" x-text="prod.group"></td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap" x-text="prod.supplier"></td>
+                                        <td class="px-6 py-4 text-right flex justify-end gap-2 whitespace-nowrap">
+                                            <button @click="editItem(prod)" class="text-brand-600 hover:text-brand-900"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                            <button @click="deleteItem(prod)" class="text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="products_catalog.length === 0">
+                                    <td colspan="9" class="px-6 py-12 text-center text-slate-500">Nenhum produto cadastrado.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- VIEW 11: IMPOSTOS (ATUALIZADA) -->
+                <div x-show="currentView === 'taxes'" class="bg-white rounded-lg shadow overflow-hidden border border-slate-200 table-container">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">AP_NCM</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Estado</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Operação</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Código ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ICMS</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">PIS</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">COFINS</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-slate-200">
+                                <template x-for="tax in sortedFilteredTaxes" :key="tax.id">
+                                    <tr class="hover:bg-slate-50 transition">
+                                        <td class="px-6 py-4 text-xs font-bold text-slate-500 whitespace-nowrap" x-text="tax.AP_NCM"></td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap" x-text="tax.AR_ESTADO"></td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap" x-text="tax.AR_OPERACAO"></td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap" x-text="tax.CODIGOID"></td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap" x-text="tax.AR_ICMS"></td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap" x-text="tax.AR_PIS"></td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap" x-text="tax.AR_COFINS"></td>
+                                        <td class="px-6 py-4 text-right flex justify-end gap-2 whitespace-nowrap">
+                                            <button @click="editItem(tax)" class="text-brand-600 hover:text-brand-900"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                            <button @click="deleteItem(tax)" class="text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="taxes.length === 0">
+                                    <td colspan="8" class="px-6 py-12 text-center text-slate-500">Nenhum imposto cadastrado.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <!-- VIEW 1: KANBAN -->
@@ -215,28 +568,31 @@
                                                 <div class="w-3 h-3 rounded-full" :class="status.color"></div>
                                                 <h3 class="font-bold text-sm text-slate-700" x-text="status.label"></h3>
                                             </div>
-                                            <span class="bg-white px-2 py-0.5 rounded-full text-xs font-bold text-slate-500 border border-slate-200" x-text="getItemsCount(status.id)">0</span>
+                                            <span class="bg-white px-2 py-0.5 rounded-full text-xs font-bold text-slate-500 border border-slate-200" x-text="getFilteredProjectsByStatus(status.id).length">0</span>
                                         </div>
-                                        <!-- Big Number por Coluna -->
                                         <div class="text-xs text-slate-500 font-medium pl-5">
                                             Total: <span class="text-slate-800 font-bold" x-text="getStatusTotalValue(status.id)"></span>
                                         </div>
                                     </div>
                                     <div class="p-2 flex-1 overflow-y-auto kanban-col space-y-2">
-                                        <template x-for="item in getProjectsByStatus(status.id)" :key="item.id">
+                                        <template x-for="item in getFilteredProjectsByStatus(status.id)" :key="item.id">
                                             <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer group relative" @click="editItem(item)">
                                                 <div class="absolute left-0 top-3 bottom-3 w-1 rounded-r bg-brand-500"></div>
                                                 <div class="pl-2">
                                                     <div class="flex justify-between items-start mb-1">
-                                                        <span class="text-xs font-bold text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded" x-text="item.serviceType"></span>
-                                                        <span class="text-xs text-slate-400" x-text="formatDate(item.createdAt)"></span>
+                                                        <span class="text-xs font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200" x-text="'#' + (item.customId || '---')"></span>
+                                                        <span class="text-xs text-slate-400" x-text="formatDateRawISO(item.createdAt)"></span>
                                                     </div>
                                                     <h4 class="font-bold text-slate-800 text-sm mb-0.5" x-text="item.clientName"></h4>
+                                                    <div class="text-xs font-bold text-brand-600 mb-1" x-text="item.serviceType"></div>
                                                     <p class="text-xs text-slate-500 truncate mb-2 flex items-center gap-1">
                                                         <i data-lucide="map-pin" class="w-3 h-3"></i> <span x-text="item.address || 'Sem endereço'"></span>
                                                     </p>
                                                     <div class="flex justify-between items-center pt-2 border-t border-slate-100 mt-2">
-                                                        <span class="font-bold text-sm text-slate-700" x-text="formatMoney(item.value)"></span>
+                                                        <div class="flex flex-col">
+                                                            <span class="text-[10px] text-slate-400 uppercase">Serviço</span>
+                                                            <span class="font-bold text-sm text-slate-700" x-text="formatMoney(item.serviceValue)"></span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -248,35 +604,95 @@
                     </div>
                 </div>
 
-                <!-- VIEW 2: LISTA DE OBRAS -->
-                <div x-show="currentView === 'list'" class="bg-white rounded-lg shadow overflow-hidden border border-slate-200">
+                <!-- VIEW 2: LISTA DE OBRAS & VENDA BALCÃO -->
+                <div x-show="['list', 'counter'].includes(currentView)" class="bg-white rounded-lg shadow overflow-hidden border border-slate-200 table-container">
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-slate-200">
+                        <table class="min-w-full divide-y divide-slate-200 w-full">
                             <thead class="bg-slate-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Cliente / Endereço</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Serviço</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Data</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Valor</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Ações</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-[20%]">ID / Cliente</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-[15%]">Serviço</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-[15%]">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-[20%]" x-show="currentView === 'list'">
+                                        Datas (Orç / Cont / Fat / Rec)
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-[20%]" x-show="currentView === 'counter'">
+                                        Datas (Venda / Fat)
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-[20%]">Valores</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-[10%]">Ações</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-slate-200">
-                                <template x-for="item in projects" :key="item.id">
-                                    <tr class="hover:bg-slate-50 transition cursor-pointer" @click="editItem(item)">
-                                        <td class="px-6 py-4">
+                                <template x-for="item in filteredProjects" :key="item.id">
+                                    <tr class="hover:bg-slate-50 transition">
+                                        <td class="px-6 py-4 cursor-pointer" @click="editItem(item)">
+                                            <div class="text-xs font-bold text-slate-500" x-text="'#' + (item.customId || '---')"></div>
                                             <div class="text-sm font-medium text-slate-900" x-text="item.clientName"></div>
-                                            <div class="text-xs text-slate-500" x-text="item.address"></div>
+                                            <div class="text-xs text-slate-500 truncate max-w-[150px]" x-text="item.address || 'Balcão'"></div>
                                         </td>
-                                        <td class="px-6 py-4"><span class="px-2 py-1 text-xs font-semibold rounded-full bg-slate-100" x-text="item.serviceType"></span></td>
-                                        <td class="px-6 py-4">
+                                        <td class="px-6 py-4 cursor-pointer" @click="editItem(item)">
+                                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-slate-100" x-text="item.serviceType"></span>
+                                        </td>
+                                        <td class="px-6 py-4 cursor-pointer" @click="editItem(item)">
                                             <span class="px-2 py-1 text-xs font-semibold rounded-full" :class="getStatusColor(item.status)" x-text="getStatusLabel(item.status)"></span>
                                         </td>
-                                        <td class="px-6 py-4 text-sm text-slate-500" x-text="formatDate(item.createdAt)"></td>
-                                        <td class="px-6 py-4 text-sm font-bold text-slate-700" x-text="formatMoney(item.value)"></td>
-                                        <td class="px-6 py-4 text-right">
-                                            <button class="text-brand-600 hover:text-brand-900"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                        <td class="px-6 py-4 text-xs text-slate-600 space-y-1 cursor-pointer" @click="editItem(item)" x-show="currentView === 'list'">
+                                            <div class="grid grid-cols-2 gap-1">
+                                                <span title="Orçamento">O: <span x-text="formatDateRaw(item.budgetDate)"></span></span>
+                                                <span title="Contrato">C: <span x-text="formatDateRaw(item.contractDate)"></span></span>
+                                                <span title="Faturamento">F: <span x-text="formatDateRaw(item.billingDate)"></span></span>
+                                                <span title="Recebimento">R: <span x-text="formatDateRaw(item.revenueDate)"></span></span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-xs text-slate-600 space-y-1 cursor-pointer" @click="editItem(item)" x-show="currentView === 'counter'">
+                                            <div class="grid grid-cols-1 gap-1">
+                                                <span title="Venda">Venda: <span x-text="formatDateRawISO(item.createdAt)"></span></span>
+                                                <span title="Faturamento">Fat: <span x-text="formatDateRaw(item.billingDate)"></span></span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 cursor-pointer" @click="editItem(item)">
+                                            <div class="text-xs text-slate-500" x-show="currentView === 'list'">Contrato: <span class="font-semibold text-slate-700" x-text="formatMoney(item.contractValue)"></span></div>
+                                            <div class="text-xs text-slate-500">Serviço: <span class="font-bold text-brand-700" x-text="formatMoney(item.serviceValue)"></span></div>
+                                        </td>
+                                        <td class="px-6 py-4 text-right flex justify-end gap-2">
+                                            <button @click="editItem(item)" class="text-brand-600 hover:text-brand-900" title="Editar"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                            <button @click="deleteItem(item)" class="text-red-500 hover:text-red-700" title="Excluir"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- VIEW 7: CUSTOS DE OBRA -->
+                <div x-show="currentView === 'costs'" class="bg-white rounded-lg shadow overflow-hidden border border-slate-200 table-container">
+                    <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                        <h3 class="text-lg font-medium leading-6 text-slate-900">Histórico de Custos por Obra</h3>
+                        <span class="text-xs text-slate-500">Controle financeiro detalhado</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200 w-full">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-[20%]">ID Obra</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-[30%]">Cliente</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-[20%]">Data do Registro</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-[20%]">Custo Total</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-[10%]">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-slate-200">
+                                <template x-for="cost in projectCosts" :key="cost.id">
+                                    <tr class="hover:bg-slate-50 transition">
+                                        <td class="px-6 py-4 text-xs font-bold text-slate-500" x-text="'#' + (cost.projectCustomId || '---')"></td>
+                                        <td class="px-6 py-4 text-sm text-slate-900" x-text="cost.clientName"></td>
+                                        <td class="px-6 py-4 text-sm text-slate-500" x-text="formatDate(cost.createdAt)"></td>
+                                        <td class="px-6 py-4 text-sm font-bold text-danger-700" x-text="formatMoney(cost.totalCost)"></td>
+                                        <td class="px-6 py-4 text-right flex justify-end gap-2">
+                                            <button @click="editItem(cost)" class="text-brand-600 hover:text-brand-900" title="Editar"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                            <button @click="deleteItem(cost)" class="text-red-500 hover:text-red-700" title="Excluir"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                                         </td>
                                     </tr>
                                 </template>
@@ -289,35 +705,30 @@
                 <div x-show="currentView === 'invoices'" class="bg-white rounded-lg shadow overflow-hidden border border-slate-200">
                     <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
                         <h3 class="text-lg font-medium leading-6 text-slate-900">Serviços Prontos para Faturamento</h3>
-                        <span class="text-xs text-slate-500">Listando obras concluídas ou aprovadas</span>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-slate-200">
                             <thead class="bg-slate-50">
                                 <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Cliente</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Serviço</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Data Conclusão</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Valor Total</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status NF</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Data Faturamento</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Valor Serviço</th>
                                     <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Ações</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-slate-200">
                                 <template x-for="item in projects.filter(p => ['concluido', 'instalacao'].includes(p.status))" :key="item.id">
                                     <tr class="hover:bg-slate-50 transition">
+                                        <td class="px-6 py-4 text-xs font-bold text-slate-500" x-text="'#' + (item.customId || '---')"></td>
                                         <td class="px-6 py-4">
                                             <div class="text-sm font-medium text-slate-900" x-text="item.clientName"></div>
                                             <div class="text-xs text-slate-500" x-text="formatCPF(item.cnpj || 'CPF não inf.')"></div>
                                         </td>
                                         <td class="px-6 py-4 text-sm text-slate-500" x-text="item.description || item.serviceType"></td>
-                                        <td class="px-6 py-4 text-sm text-slate-500" x-text="formatDate(item.createdAt)"></td>
-                                        <td class="px-6 py-4 text-sm font-bold text-slate-700" x-text="formatMoney(item.value)"></td>
-                                        <td class="px-6 py-4">
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                                Pendente
-                                            </span>
-                                        </td>
+                                        <td class="px-6 py-4 text-sm text-slate-500" x-text="formatDateRaw(item.billingDate)"></td>
+                                        <td class="px-6 py-4 text-sm font-bold text-slate-700" x-text="formatMoney(item.serviceValue)"></td>
                                         <td class="px-6 py-4 text-right">
                                             <button @click="alert('Simulação: Nota Fiscal gerada com sucesso!')" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-brand-600 hover:bg-brand-700 focus:outline-none">
                                                 <i data-lucide="printer" class="w-3 h-3 mr-1.5"></i> Emitir Nota
@@ -325,9 +736,6 @@
                                         </td>
                                     </tr>
                                 </template>
-                                <tr x-show="projects.filter(p => ['concluido', 'instalacao'].includes(p.status)).length === 0">
-                                    <td colspan="6" class="px-6 py-12 text-center text-slate-500">Nenhum serviço pendente de faturamento.</td>
-                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -344,22 +752,27 @@
                                     <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Cargo</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Telefone</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Salário / Extra</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Funções Extras / Obs</th>
                                     <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Ações</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-slate-200">
                                 <template x-for="emp in employees" :key="emp.id">
-                                    <tr class="hover:bg-slate-50 transition cursor-pointer" @click="editItem(emp)">
-                                        <td class="px-6 py-4">
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" 
-                                                  :class="emp.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
+                                    <tr class="hover:bg-slate-50 transition cursor-pointer">
+                                        <td class="px-6 py-4 cursor-pointer" @click="editItem(emp)">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" :class="emp.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
                                                 <span x-text="emp.isActive ? 'Ativo' : 'Inativo'"></span>
                                             </span>
                                         </td>
-                                        <td class="px-6 py-4">
-                                            <div class="text-sm font-medium text-slate-900" x-text="emp.name"></div>
-                                            <div class="text-xs text-slate-500" x-text="formatCPF(emp.cpf)"></div>
+                                        <td class="px-6 py-4 cursor-pointer" @click="editItem(emp)">
+                                            <div class="flex items-center">
+                                                <div class="mr-2">
+                                                    <div class="text-sm font-medium text-slate-900" x-text="emp.name"></div>
+                                                    <div class="text-xs text-slate-500" x-text="formatCPF(emp.cpf)"></div>
+                                                </div>
+                                                <div x-show="hasExpiredCourse(emp)" class="text-red-500" title="Curso Vencido">
+                                                    <i data-lucide="triangle-alert" class="w-5 h-5"></i>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td class="px-6 py-4 text-sm text-slate-700" x-text="emp.role"></td>
                                         <td class="px-6 py-4 text-sm text-slate-500" x-text="formatPhone(emp.phone)"></td>
@@ -367,9 +780,9 @@
                                             <div class="text-xs text-slate-500">Salário: <span class="font-bold text-slate-700" x-text="formatMoney(emp.salary)"></span></div>
                                             <div class="text-xs text-slate-500">Extra: <span class="font-bold text-success-600" x-text="formatMoney(emp.extraValue)"></span></div>
                                         </td>
-                                        <td class="px-6 py-4 text-sm text-slate-500 italic" x-text="emp.extras || '-'"></td>
-                                        <td class="px-6 py-4 text-right">
-                                            <button class="text-brand-600 hover:text-brand-900"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                        <td class="px-6 py-4 text-right flex justify-end gap-2">
+                                            <button @click="editItem(emp)" class="text-brand-600 hover:text-brand-900"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                            <button @click="deleteItem(emp)" class="text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                                         </td>
                                     </tr>
                                 </template>
@@ -385,8 +798,7 @@
                             <thead class="bg-slate-50">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Item</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status / Data</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Tipo/Categoria</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Qtd. Estoque</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Custo (Unit.)</th>
                                     <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Ações</th>
@@ -394,19 +806,18 @@
                             </thead>
                             <tbody class="bg-white divide-y divide-slate-200">
                                 <template x-for="mat in materials" :key="mat.id">
-                                    <tr class="hover:bg-slate-50 transition cursor-pointer" @click="editItem(mat)">
-                                        <td class="px-6 py-4 font-medium text-slate-900" x-text="mat.name"></td>
-                                        <td class="px-6 py-4">
+                                    <tr class="hover:bg-slate-50 transition cursor-pointer">
+                                        <td class="px-6 py-4 font-medium text-slate-900 cursor-pointer" @click="editItem(mat)" x-text="mat.name"></td>
+                                        <td class="px-6 py-4 cursor-pointer" @click="editItem(mat)">
                                             <span class="inline-flex text-xs leading-5 font-semibold rounded-full px-2" :class="mat.status === 'Pedido Feito' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'" x-text="mat.status || 'Em Estoque'"></span>
-                                            <div class="text-xs text-slate-400 mt-1" x-text="formatDateRaw(mat.orderDate)"></div>
                                         </td>
-                                        <td class="px-6 py-4 text-sm text-slate-500" x-text="mat.type"></td>
                                         <td class="px-6 py-4 text-sm font-bold text-slate-700">
                                             <span x-text="mat.quantity"></span> <span x-text="mat.unit" class="text-xs font-normal text-slate-400"></span>
                                         </td>
                                         <td class="px-6 py-4 text-sm text-slate-700" x-text="formatMoney(mat.cost)"></td>
-                                        <td class="px-6 py-4 text-right">
-                                            <button class="text-brand-600 hover:text-brand-900"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                        <td class="px-6 py-4 text-right flex justify-end gap-2">
+                                            <button @click="editItem(mat)" class="text-brand-600 hover:text-brand-900"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                            <button @click="deleteItem(mat)" class="text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                                         </td>
                                     </tr>
                                 </template>
@@ -417,17 +828,14 @@
 
                 <!-- VIEW 5: CONTAS A PAGAR -->
                 <div x-show="currentView === 'payables'" class="space-y-4">
-                    <!-- Filtro de Mês -->
                     <div class="flex items-center gap-4 bg-white p-3 rounded-lg shadow-sm border border-slate-200">
                         <label class="text-sm font-bold text-slate-600">Filtrar Mês:</label>
                         <input type="month" x-model="selectedMonth" class="border border-slate-300 rounded px-2 py-1 text-sm">
-                        
                         <div class="ml-auto flex gap-4 text-sm">
                             <div class="text-slate-500">Pendente: <span class="font-bold text-danger-500" x-text="formatMoney(filteredPayables.reduce((a,c) => !c.isPaid ? a + (parseFloat(c.amount)||0) : a, 0))"></span></div>
                             <div class="text-slate-500">Pago: <span class="font-bold text-success-500" x-text="formatMoney(filteredPayables.reduce((a,c) => c.isPaid ? a + (parseFloat(c.amount)||0) : a, 0))"></span></div>
                         </div>
                     </div>
-
                     <div class="bg-white rounded-lg shadow overflow-hidden border border-slate-200">
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-slate-200">
@@ -443,24 +851,23 @@
                                 </thead>
                                 <tbody class="bg-white divide-y divide-slate-200">
                                     <template x-for="bill in filteredPayables" :key="bill.id">
-                                        <tr class="hover:bg-slate-50 transition">
+                                        <tr class="hover:bg-slate-50 transition" :class="bill.isAuto ? 'bg-blue-50' : ''">
                                             <td class="px-4 py-4 text-center">
-                                                <input type="checkbox" :checked="bill.isPaid" @click.prevent="togglePaid(bill)" class="w-5 h-5 text-brand-600 rounded focus:ring-brand-500 cursor-pointer">
+                                                <input type="checkbox" :checked="bill.isPaid" @click.stop="togglePaid(bill)" class="w-5 h-5 text-brand-600 rounded focus:ring-brand-500 cursor-pointer">
                                             </td>
                                             <td class="px-6 py-4 cursor-pointer" @click="editItem(bill)">
                                                 <div class="font-medium text-slate-900" :class="{'line-through text-slate-400': bill.isPaid}" x-text="bill.description"></div>
+                                                <div x-show="bill.isAuto" class="text-[10px] text-blue-600 font-bold uppercase">Automático</div>
                                             </td>
                                             <td class="px-6 py-4 text-sm text-slate-500" x-text="bill.category"></td>
                                             <td class="px-6 py-4 text-sm" :class="isOverdue(bill) ? 'text-red-600 font-bold' : 'text-slate-500'" x-text="formatDateRaw(bill.dueDate)"></td>
                                             <td class="px-6 py-4 text-sm font-bold text-slate-700" x-text="formatMoney(bill.amount)"></td>
-                                            <td class="px-6 py-4 text-right">
-                                                <button @click="editItem(bill)" class="text-brand-600 hover:text-brand-900"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                            <td class="px-6 py-4 text-right flex justify-end gap-2">
+                                                <button @click="editItem(bill)" class="text-brand-600 hover:text-brand-900" x-show="!bill.isAuto"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                                <button @click="deleteItem(bill)" class="text-red-500 hover:text-red-700" x-show="!bill.isAuto"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                                             </td>
                                         </tr>
                                     </template>
-                                    <tr x-show="filteredPayables.length === 0">
-                                        <td colspan="6" class="px-6 py-12 text-center text-slate-500">Nenhuma conta encontrada para este mês.</td>
-                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -469,8 +876,7 @@
 
             </main>
         </div>
-
-        <!-- Modal Dinâmico -->
+      <!-- Modal Dinâmico -->
         <div x-show="showModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
             <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div x-show="showModal" x-transition.opacity class="fixed inset-0 bg-slate-900 bg-opacity-75 transition-opacity" @click="closeModal()"></div>
@@ -491,6 +897,30 @@
                             <!-- FORM: ORÇAMENTOS/PROJETOS -->
                             <template x-if="modalType === 'project'">
                                 <div class="contents">
+                                    <div class="sm:col-span-2" x-show="!isEditing">
+                                        <div class="flex items-center justify-between mb-1">
+                                            <label class="text-xs font-bold text-slate-500 uppercase">Vincular a Obra Existente?</label>
+                                            <div class="flex items-center">
+                                                <input type="checkbox" x-model="linkToExisting" class="mr-2 rounded text-brand-600 focus:ring-brand-500">
+                                                <span class="text-sm text-slate-600">Sim</span>
+                                            </div>
+                                        </div>
+                                        <div x-show="linkToExisting">
+                                            <select x-model="selectedParentId" class="w-full px-3 py-2 border rounded-lg bg-yellow-50 border-yellow-300">
+                                                <option value="">Selecione uma obra...</option>
+                                                <template x-for="p in uniqueProjects" :key="p.customId">
+                                                    <option :value="p.customId" x-text="'#' + p.customId + ' - ' + p.clientName"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                        <div x-show="!linkToExisting" class="text-sm text-slate-500 bg-slate-100 p-2 rounded">
+                                            Será gerado novo ID: <strong x-text="'#' + nextId"></strong>
+                                        </div>
+                                    </div>
+                                    <div class="sm:col-span-2" x-show="isEditing">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">ID da Obra</label>
+                                        <input type="text" :value="'#' + currentItem.customId" disabled class="w-full px-3 py-2 border rounded-lg bg-slate-100 text-slate-500">
+                                    </div>
                                     <div class="sm:col-span-2">
                                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Cliente</label>
                                         <input type="text" x-model="currentItem.clientName" class="w-full px-3 py-2 border rounded-lg" required>
@@ -517,9 +947,13 @@
                                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Descrição</label>
                                         <textarea x-model="currentItem.description" rows="2" class="w-full px-3 py-2 border rounded-lg"></textarea>
                                     </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Valor (R$)</label>
-                                        <input type="number" step="0.01" x-model="currentItem.value" class="w-full px-3 py-2 border rounded-lg">
+                                    <div x-show="currentView !== 'counter'">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Valor Contrato (Total)</label>
+                                        <input type="number" step="0.01" x-model="currentItem.contractValue" class="w-full px-3 py-2 border rounded-lg bg-slate-50">
+                                    </div>
+                                    <div :class="currentView === 'counter' ? 'sm:col-span-2' : ''">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Valor Serviço (Este Pedido)</label>
+                                        <input type="number" step="0.01" x-model="currentItem.serviceValue" class="w-full px-3 py-2 border rounded-lg border-brand-300">
                                     </div>
                                     <div>
                                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
@@ -529,14 +963,267 @@
                                             </template>
                                         </select>
                                     </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Data</label>
-                                        <input type="date" x-model="currentItem.date" class="w-full px-3 py-2 border rounded-lg">
+                                    <div class="sm:col-span-2 flex items-center gap-2 mt-2 p-2 bg-orange-50 rounded border border-orange-200" x-show="!isEditing && currentView !== 'counter'">
+                                        <input type="checkbox" x-model="hasLabor" class="w-4 h-4 text-accent-600 focus:ring-accent-500">
+                                        <span class="text-sm font-bold text-slate-700">Adicionar Mão de Obra (20%)?</span>
+                                    </div>
+                                    <div class="sm:col-span-2 border-t border-slate-100 pt-4 mt-2">
+                                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-2">Datas de Acompanhamento</h4>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div x-show="currentView !== 'counter'">
+                                                <label class="block text-xs text-slate-500 mb-1">Data Orçamento</label>
+                                                <input type="date" x-model="currentItem.budgetDate" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                            </div>
+                                            <div x-show="currentView !== 'counter'">
+                                                <label class="block text-xs text-slate-500 mb-1">Envio Contrato</label>
+                                                <input type="date" x-model="currentItem.contractDate" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs text-slate-500 mb-1">Previsão Faturamento</label>
+                                                <input type="date" x-model="currentItem.billingDate" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                            </div>
+                                            <div x-show="currentView !== 'counter'">
+                                                <label class="block text-xs text-slate-500 mb-1">Previsão Recebimento</label>
+                                                <input type="date" x-model="currentItem.revenueDate" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </template>
 
-                            <!-- FORM: FUNCIONÁRIOS -->
+                            <!-- FORM: CLIENTES -->
+                            <template x-if="modalType === 'client'">
+                                <div class="contents">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Código</label>
+                                        <input type="text" x-model="currentItem.code" class="w-full px-3 py-2 border rounded-lg bg-slate-50" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">CNPJ/CPF</label>
+                                        <input type="text" x-model="currentItem.document" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Razão Social / Nome</label>
+                                        <input type="text" x-model="currentItem.name" class="w-full px-3 py-2 border rounded-lg" required>
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome Fantasia</label>
+                                        <input type="text" x-model="currentItem.fantasy" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo Pessoa</label>
+                                        <select x-model="currentItem.type" class="w-full px-3 py-2 border rounded-lg">
+                                            <option value="Fisica">Física</option>
+                                            <option value="Juridica">Jurídica</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Data Cadastro</label>
+                                        <input type="date" x-model="currentItem.registerDate" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Telefone</label>
+                                        <input type="text" x-model="currentItem.phone" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Celular</label>
+                                        <input type="text" x-model="currentItem.cell" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
+                                        <input type="email" x-model="currentItem.email" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div class="sm:col-span-2 border-t border-slate-100 pt-4 mt-2 mb-2">
+                                        <h4 class="text-xs font-bold text-slate-400 uppercase">Endereço</h4>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">CEP</label>
+                                        <input type="text" x-model="currentItem.zip" class="w-full px-3 py-2 border rounded-lg" placeholder="00000-000">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Endereço (Logradouro)</label>
+                                        <input type="text" x-model="currentItem.address" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Número</label>
+                                        <input type="text" x-model="currentItem.number" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Complemento</label>
+                                        <input type="text" x-model="currentItem.complement" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Bairro</label>
+                                        <input type="text" x-model="currentItem.district" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Cidade</label>
+                                        <input type="text" x-model="currentItem.city" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">UF</label>
+                                        <input type="text" x-model="currentItem.state" class="w-full px-3 py-2 border rounded-lg" maxlength="2">
+                                    </div>
+                                    <div class="sm:col-span-2 mt-2">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Observação</label>
+                                        <textarea x-model="currentItem.notes" rows="3" class="w-full px-3 py-2 border rounded-lg"></textarea>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- FORM: PRODUTOS CATALOGO -->
+                            <template x-if="modalType === 'product'">
+                                <div class="contents">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Código</label>
+                                        <input type="text" x-model="currentItem.code" class="w-full px-3 py-2 border rounded-lg" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Código ID</label>
+                                        <input type="text" x-model="currentItem.idCode" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Descrição</label>
+                                        <input type="text" x-model="currentItem.description" class="w-full px-3 py-2 border rounded-lg" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Unidade de Medida</label>
+                                        <select x-model="currentItem.unit" class="w-full px-3 py-2 border rounded-lg">
+                                            <option value="ML">ML</option>
+                                            <option value="PC">PC</option>
+                                            <option value="PÇ">PÇ</option>
+                                            <option value="M2">M2</option>
+                                            <option value="BG">BG</option>
+                                            <option value="KG">KG</option>
+                                            <option value="LT">LT</option>
+                                            <option value="UN">UN</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">NCM</label>
+                                        <input type="text" x-model="currentItem.ncm" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Código Imposto</label>
+                                        <input type="text" x-model="currentItem.taxCode" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Preço Venda</label>
+                                        <input type="number" step="0.01" x-model="currentItem.price" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Vlr Unit. Compra</label>
+                                        <input type="number" step="0.01" x-model="currentItem.costPrice" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Grupo</label>
+                                        <input type="text" x-model="currentItem.group" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Subgrupo</label>
+                                        <input type="text" x-model="currentItem.subgroup" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Modelo</label>
+                                        <input type="text" x-model="currentItem.model" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Data Cadastro</label>
+                                        <input type="date" x-model="currentItem.registerDate" class="w-full px-3 py-2 border rounded-lg" readonly>
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fornecedor</label>
+                                        <input type="text" x-model="currentItem.supplier" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- FORM: IMPOSTOS -->
+                            <template x-if="modalType === 'tax'">
+                                <div class="contents">
+                                    <div><label class="block text-xs font-bold text-slate-500 mb-1">AP_NCM</label><input type="text" x-model="currentItem.AP_NCM" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_ESTADO</label><input type="text" x-model="currentItem.AR_ESTADO" class="w-full px-3 py-2 border rounded-lg" maxlength="2"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_OPERACAO</label><input type="text" x-model="currentItem.AR_OPERACAO" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 mb-1">CODIGOID</label><input type="text" x-model="currentItem.CODIGOID" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    
+                                    <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_ICMS</label><input type="number" step="0.01" x-model="currentItem.AR_ICMS" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_PIS</label><input type="number" step="0.01" x-model="currentItem.AR_PIS" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_COFINS</label><input type="number" step="0.01" x-model="currentItem.AR_COFINS" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_IPI</label><input type="number" step="0.01" x-model="currentItem.AR_IPI" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    
+                                    <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_ISS</label><input type="number" step="0.01" x-model="currentItem.AR_ISS" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_IR</label><input type="number" step="0.01" x-model="currentItem.AR_IR" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_CSLL</label><input type="number" step="0.01" x-model="currentItem.AR_CSLL" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_ST_MVA</label><input type="number" step="0.01" x-model="currentItem.AR_ST_MVA" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    
+                                    <!-- Campos Extras Simplificados -->
+                                    <div class="sm:col-span-2 mt-2">
+                                        <h4 class="text-xs font-bold text-slate-400 uppercase border-b pb-1 mb-2">Outros Campos</h4>
+                                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                            <input type="text" x-model="currentItem.AR_CODIGO_DAP" placeholder="DAP" class="border rounded px-2 py-1 text-xs">
+                                            <input type="text" x-model="currentItem.AR_ST" placeholder="ST" class="border rounded px-2 py-1 text-xs">
+                                            <input type="text" x-model="currentItem.AR_CFOP" placeholder="CFOP" class="border rounded px-2 py-1 text-xs">
+                                            <input type="text" x-model="currentItem.AR_CSOSN" placeholder="CSOSN" class="border rounded px-2 py-1 text-xs">
+                                            <input type="text" x-model="currentItem.AR_FILIAL" placeholder="Filial" class="border rounded px-2 py-1 text-xs">
+                                            <input type="text" x-model="currentItem.AR_PESSOA" placeholder="Pessoa" class="border rounded px-2 py-1 text-xs">
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- FORM: CUSTOS -->
+                            <template x-if="modalType === 'cost'">
+                                <div class="contents">
+                                    <div class="sm:col-span-2">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Vincular a Obra (Obrigatório)</label>
+                                        <select x-model="currentItem.projectRefId" class="w-full px-3 py-2 border rounded-lg bg-yellow-50 border-yellow-300" required @change="updateCostProjectData">
+                                            <option value="">Selecione uma obra...</option>
+                                            <template x-for="p in uniqueProjects" :key="p.customId">
+                                                <option :value="p.id" x-text="'#' + p.customId + ' - ' + p.clientName"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Checklist de Custos</label>
+                                        <div class="space-y-3">
+                                            <!-- Material -->
+                                            <div class="p-2 rounded bg-slate-50 border">
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center"><input type="checkbox" x-model="costChecks.material" class="w-4 h-4 text-brand-600 rounded"><span class="ml-2 text-sm text-slate-700 font-medium">Material Utilizado</span></div>
+                                                </div>
+                                                <div x-show="costChecks.material" class="mt-2 pl-6 space-y-2 border-l-2 border-brand-200">
+                                                    <div class="mb-3 p-2 bg-white rounded border border-slate-200">
+                                                        <div class="flex items-center gap-2 mb-2">
+                                                            <input type="checkbox" x-model="costChecks.rawMaterial" class="w-3 h-3 text-brand-600 rounded"><span class="text-xs font-bold text-slate-700">Chapa / Matéria Prima</span>
+                                                        </div>
+                                                        <div x-show="costChecks.rawMaterial" class="grid grid-cols-2 gap-2">
+                                                            <select x-model="currentItem.costs.materials['RawMaterial'].type" class="border rounded px-1 py-0.5 text-xs w-full"><option value="Galvanizada">Galvanizada</option><option value="Galvalume">Galvalume</option><option value="Inox">Inox</option><option value="Alumínio">Alumínio</option></select>
+                                                            <select x-model="currentItem.costs.materials['RawMaterial'].thickness" class="border rounded px-1 py-0.5 text-xs w-full"><option value="0.43">0.43</option><option value="0.50">0.50</option><option value="0.65">0.65</option></select>
+                                                            <input type="number" x-model="currentItem.costs.materials['RawMaterial'].meters" placeholder="Metragem (m)" class="border rounded px-1 py-0.5 text-xs w-full">
+                                                            <input type="number" step="0.01" x-model="currentItem.costs.materials['RawMaterial'].pricePerMeter" placeholder="R$ / Metro" class="border rounded px-1 py-0.5 text-xs w-full">
+                                                        </div>
+                                                    </div>
+                                                    <template x-for="matType in ['PU/Vedante', 'Rebite', 'Capacete', 'Porca', 'Parafuso']">
+                                                        <div class="flex items-center gap-2"><span class="text-xs text-slate-600 w-24" x-text="matType"></span><input type="number" x-model="currentItem.costs.materials[matType].qty" placeholder="Qtd" class="w-16 border rounded px-1 py-0.5 text-xs text-center"><input type="number" step="0.01" x-model="currentItem.costs.materials[matType].unitCost" placeholder="R$ Unit." class="w-20 border rounded px-1 py-0.5 text-xs text-right"></div>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                            <!-- Outros Custos -->
+                                            <div class="flex items-center justify-between p-2 rounded bg-slate-50 border"><div class="flex items-center"><input type="checkbox" x-model="costChecks.meal" class="w-4 h-4 text-brand-600 rounded"><span class="ml-2 text-sm text-slate-700">Custo de Refeição</span></div><input type="number" step="0.01" x-model="currentItem.costs.meal" class="w-32 border rounded px-2 py-1 text-right" x-show="costChecks.meal" placeholder="0.00"></div>
+                                            <div class="flex items-center justify-between p-2 rounded bg-slate-50 border"><div class="flex items-center"><input type="checkbox" x-model="costChecks.painting" class="w-4 h-4 text-brand-600 rounded"><span class="ml-2 text-sm text-slate-700">Custo de Pintura</span></div><input type="number" step="0.01" x-model="currentItem.costs.painting" class="w-32 border rounded px-2 py-1 text-right" x-show="costChecks.painting" placeholder="0.00"></div>
+                                            <div class="flex items-center justify-between p-2 rounded bg-slate-50 border"><div class="flex items-center"><input type="checkbox" x-model="costChecks.operational" class="w-4 h-4 text-brand-600 rounded"><span class="ml-2 text-sm text-slate-700">Custo Operacional</span></div><input type="number" step="0.01" x-model="currentItem.costs.operational" class="w-32 border rounded px-2 py-1 text-right" x-show="costChecks.operational" placeholder="0.00"></div>
+                                            <div class="flex items-center justify-between p-2 rounded bg-slate-50 border"><div class="flex items-center"><input type="checkbox" x-model="costChecks.transport" class="w-4 h-4 text-brand-600 rounded"><span class="ml-2 text-sm text-slate-700">Custo de Locomoção</span></div><input type="number" step="0.01" x-model="currentItem.costs.transport" class="w-32 border rounded px-2 py-1 text-right" x-show="costChecks.transport" placeholder="0.00"></div>
+                                            <div class="flex items-center justify-between p-2 rounded bg-slate-50 border"><div class="flex items-center"><input type="checkbox" x-model="costChecks.unforeseen" class="w-4 h-4 text-brand-600 rounded"><span class="ml-2 text-sm text-slate-700">Imprevistos</span></div><input type="number" step="0.01" x-model="currentItem.costs.unforeseen" class="w-32 border rounded px-2 py-1 text-right" x-show="costChecks.unforeseen" placeholder="0.00"></div>
+                                            <div class="flex items-center justify-between p-2 rounded bg-slate-50 border"><div class="flex items-center"><input type="checkbox" x-model="costChecks.tax" class="w-4 h-4 text-brand-600 rounded"><span class="ml-2 text-sm text-slate-700">Imposto Gerado</span></div><input type="number" step="0.01" x-model="currentItem.costs.tax" class="w-32 border rounded px-2 py-1 text-right" x-show="costChecks.tax" placeholder="0.00"></div>
+                                        </div>
+                                    </div>
+                                    <div class="sm:col-span-2 text-right">
+                                        <p class="text-sm font-bold text-slate-500">Total Calculado: <span class="text-xl text-danger-600" x-text="formatMoney(calculatedTotalCost)"></span></p>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- FORM: FUNCIONÁRIOS (ATUALIZADO - CURSOS DINÂMICOS) -->
                             <template x-if="modalType === 'employee'">
                                 <div class="contents">
                                     <div class="sm:col-span-2 flex items-center gap-2 mb-2 p-2 bg-slate-50 rounded border">
@@ -546,33 +1233,44 @@
                                             <option value="false">Inativo (Desligado)</option>
                                         </select>
                                     </div>
-                                    <div class="sm:col-span-2">
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome Completo</label>
-                                        <input type="text" x-model="currentItem.name" class="w-full px-3 py-2 border rounded-lg" required>
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">CPF (Apenas números)</label>
-                                        <input type="text" x-model="currentItem.cpf" class="w-full px-3 py-2 border rounded-lg" placeholder="00000000000">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Telefone</label>
-                                        <input type="text" x-model="currentItem.phone" class="w-full px-3 py-2 border rounded-lg" placeholder="11999999999">
-                                    </div>
-                                    <div class="sm:col-span-2">
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Cargo</label>
-                                        <input type="text" x-model="currentItem.role" class="w-full px-3 py-2 border rounded-lg" placeholder="Ex: Instalador Sênior">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Salário Base</label>
-                                        <input type="number" step="0.01" x-model="currentItem.salary" class="w-full px-3 py-2 border rounded-lg" placeholder="0.00">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Valor Extra (Obras)</label>
-                                        <input type="number" step="0.01" x-model="currentItem.extraValue" class="w-full px-3 py-2 border rounded-lg" placeholder="0.00">
-                                    </div>
-                                    <div class="sm:col-span-2">
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Funções Extras / Obs</label>
-                                        <textarea x-model="currentItem.extras" rows="2" class="w-full px-3 py-2 border rounded-lg"></textarea>
+                                    <div class="sm:col-span-2"><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome Completo</label><input type="text" x-model="currentItem.name" class="w-full px-3 py-2 border rounded-lg" required></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">CPF</label><input type="text" x-model="currentItem.cpf" class="w-full px-3 py-2 border rounded-lg" placeholder="00000000000"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Telefone</label><input type="text" x-model="currentItem.phone" class="w-full px-3 py-2 border rounded-lg" placeholder="11999999999"></div>
+                                    <div class="sm:col-span-2"><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Cargo</label><input type="text" x-model="currentItem.role" class="w-full px-3 py-2 border rounded-lg" placeholder="Ex: Instalador Sênior"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Salário Base</label><input type="number" step="0.01" x-model="currentItem.salary" class="w-full px-3 py-2 border rounded-lg" placeholder="0.00"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Valor Extra</label><input type="number" step="0.01" x-model="currentItem.extraValue" class="w-full px-3 py-2 border rounded-lg" placeholder="0.00"></div>
+                                    <div class="sm:col-span-2"><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Funções Extras / Obs</label><textarea x-model="currentItem.extras" rows="2" class="w-full px-3 py-2 border rounded-lg"></textarea></div>
+                                    
+                                    <!-- SEÇÃO DE CURSOS DINÂMICA -->
+                                    <div class="sm:col-span-2 border-t border-slate-100 pt-4 mt-2">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <h4 class="text-xs font-bold text-slate-400 uppercase">Cursos e Treinamentos</h4>
+                                            <button type="button" @click="addCourse()" class="text-xs bg-brand-100 text-brand-700 px-2 py-1 rounded hover:bg-brand-200">+ Adicionar Curso</button>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <template x-for="(course, index) in currentItem.coursesList" :key="index">
+                                                <div class="flex flex-col sm:flex-row sm:items-end gap-2 p-2 bg-slate-50 rounded border border-slate-200 relative group">
+                                                    <div class="flex-1 w-full">
+                                                        <label class="block text-[10px] text-slate-400 mb-0.5">Nome do Curso</label>
+                                                        <input type="text" x-model="course.name" class="w-full px-2 py-1 border rounded text-xs" placeholder="Nome do Curso">
+                                                    </div>
+                                                    <div class="w-full sm:w-32">
+                                                        <label class="block text-[10px] text-slate-400 mb-0.5">Conclusão</label>
+                                                        <input type="date" x-model="course.completion" class="w-full px-2 py-1 border rounded text-xs">
+                                                    </div>
+                                                    <div class="w-full sm:w-32">
+                                                        <label class="block text-[10px] text-slate-400 mb-0.5">Validade</label>
+                                                        <input type="date" x-model="course.expiration" class="w-full px-2 py-1 border rounded text-xs" :class="isDateExpired(course.expiration) ? 'border-red-300 bg-red-50 text-red-700' : ''">
+                                                    </div>
+                                                    <button type="button" @click="removeCourse(index)" class="absolute top-1 right-1 text-slate-400 hover:text-red-500 sm:static sm:mb-1.5">
+                                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                                    </button>
+                                                </div>
+                                            </template>
+                                            <div x-show="currentItem.coursesList && currentItem.coursesList.length === 0" class="text-center text-xs text-slate-400 py-2">
+                                                Nenhum curso cadastrado.
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </template>
@@ -580,88 +1278,24 @@
                             <!-- FORM: MATÉRIA PRIMA -->
                             <template x-if="modalType === 'material'">
                                 <div class="contents">
-                                    <div class="sm:col-span-2">
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome do Item</label>
-                                        <input type="text" x-model="currentItem.name" class="w-full px-3 py-2 border rounded-lg" placeholder="Ex: Chapa Galvanizada 28" required>
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
-                                        <select x-model="currentItem.status" class="w-full px-3 py-2 border rounded-lg">
-                                            <option value="Em Estoque">Em Estoque</option>
-                                            <option value="Pedido Feito">Pedido Feito</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Data do Pedido</label>
-                                        <input type="date" x-model="currentItem.orderDate" class="w-full px-3 py-2 border rounded-lg">
-                                    </div>
-                                    <div class="sm:col-span-2">
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo/Categoria</label>
-                                        <select x-model="currentItem.type" class="w-full px-3 py-2 border rounded-lg">
-                                            <option value="Chapas">Chapas</option>
-                                            <option value="Acessórios">Acessórios (Rebite, Parafuso)</option>
-                                            <option value="Selantes">Selantes / PU</option>
-                                            <option value="Ferramentas">Ferramentas</option>
-                                            <option value="Outros">Outros</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Quantidade</label>
-                                        <input type="number" x-model="currentItem.quantity" class="w-full px-3 py-2 border rounded-lg">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Unidade</label>
-                                        <select x-model="currentItem.unit" class="w-full px-3 py-2 border rounded-lg">
-                                            <option value="un">Unidade (un)</option>
-                                            <option value="kg">Quilo (kg)</option>
-                                            <option value="m">Metro (m)</option>
-                                            <option value="m2">Metro Quadrado (m²)</option>
-                                            <option value="cx">Caixa</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Custo / Valor Pago</label>
-                                        <input type="number" step="0.01" x-model="currentItem.cost" class="w-full px-3 py-2 border rounded-lg" placeholder="0.00">
-                                    </div>
+                                    <div class="sm:col-span-2"><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome do Item</label><input type="text" x-model="currentItem.name" class="w-full px-3 py-2 border rounded-lg" required></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label><select x-model="currentItem.status" class="w-full px-3 py-2 border rounded-lg"><option value="Em Estoque">Em Estoque</option><option value="Pedido Feito">Pedido Feito</option></select></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Data do Pedido</label><input type="date" x-model="currentItem.orderDate" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div class="sm:col-span-2"><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo/Categoria</label><select x-model="currentItem.type" class="w-full px-3 py-2 border rounded-lg"><option value="Chapas">Chapas</option><option value="Acessórios">Acessórios</option><option value="Selantes">Selantes</option><option value="Ferramentas">Ferramentas</option><option value="Outros">Outros</option></select></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Quantidade</label><input type="number" x-model="currentItem.quantity" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Unidade</label><select x-model="currentItem.unit" class="w-full px-3 py-2 border rounded-lg"><option value="un">un</option><option value="kg">kg</option><option value="m">m</option><option value="cx">cx</option></select></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Custo / Valor Pago</label><input type="number" step="0.01" x-model="currentItem.cost" class="w-full px-3 py-2 border rounded-lg"></div>
                                 </div>
                             </template>
 
                             <!-- FORM: CONTAS A PAGAR -->
                             <template x-if="modalType === 'payable'">
                                 <div class="contents">
-                                    <div class="sm:col-span-2">
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Descrição</label>
-                                        <input type="text" x-model="currentItem.description" class="w-full px-3 py-2 border rounded-lg" placeholder="Ex: Conta de Luz" required>
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Categoria</label>
-                                        <select x-model="currentItem.category" class="w-full px-3 py-2 border rounded-lg">
-                                            <option value="Fixa">Despesa Fixa (Água/Luz)</option>
-                                            <option value="Salario">Salários</option>
-                                            <option value="ExtraSalario">Valor Extra - Salário</option>
-                                            <option value="Vale">Vale (Adiantamento)</option>
-                                            <option value="Emprestimo">Empréstimos</option>
-                                            <option value="Fornecedor">Fornecedor</option>
-                                            <option value="Extra">Extra</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Valor</label>
-                                        <input type="number" step="0.01" x-model="currentItem.amount" class="w-full px-3 py-2 border rounded-lg">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Data de Vencimento</label>
-                                        <input type="date" x-model="currentItem.dueDate" class="w-full px-3 py-2 border rounded-lg" required>
-                                    </div>
-                                    <div x-show="!isEditing" class="sm:col-span-2">
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Repetir por (meses)</label>
-                                        <input type="number" x-model="currentItem.repeatCount" min="1" max="24" class="w-full px-3 py-2 border rounded-lg" placeholder="1">
-                                        <p class="text-xs text-slate-400 mt-1">Deixe 1 para apenas este mês.</p>
-                                    </div>
-                                    <div class="sm:col-span-2 flex items-center gap-2">
-                                        <input type="checkbox" x-model="currentItem.isPaid" class="w-4 h-4 text-brand-600 border-gray-300 rounded focus:ring-brand-500">
-                                        <label class="text-sm text-slate-700">Conta já está paga</label>
-                                    </div>
+                                    <div class="sm:col-span-2"><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Descrição</label><input type="text" x-model="currentItem.description" class="w-full px-3 py-2 border rounded-lg" required :disabled="currentItem.isAuto"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Categoria</label><select x-model="currentItem.category" class="w-full px-3 py-2 border rounded-lg" :disabled="currentItem.isAuto"><option value="Fixa">Despesa Fixa</option><option value="Salario">Salários</option><option value="Fornecedor">Fornecedor</option><option value="Extra">Extra</option></select></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Valor</label><input type="number" step="0.01" x-model="currentItem.amount" class="w-full px-3 py-2 border rounded-lg" :disabled="currentItem.isAuto"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Data de Vencimento</label><input type="date" x-model="currentItem.dueDate" class="w-full px-3 py-2 border rounded-lg" required></div>
+                                    <div class="sm:col-span-2 flex items-center gap-2"><input type="checkbox" x-model="currentItem.isPaid" class="w-4 h-4 text-brand-600 rounded"><label class="text-sm text-slate-700">Conta já está paga</label></div>
                                 </div>
                             </template>
 
@@ -673,7 +1307,7 @@
                             <span x-show="!isSaving">Salvar</span>
                             <span x-show="isSaving" class="animate-spin"><i data-lucide="loader-2" class="w-4 h-4"></i></span>
                         </button>
-                        <button x-show="isEditing" @click="deleteItem" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-red-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-red-700 hover:bg-red-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Excluir</button>
+                        <button x-show="isEditing && !currentItem.isAuto" @click="deleteItem()" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-red-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-red-700 hover:bg-red-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Excluir</button>
                         <button @click="closeModal()" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-slate-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-slate-700 hover:bg-slate-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Cancelar</button>
                     </div>
                 </div>
@@ -685,11 +1319,9 @@
     <script type="module">
         import Alpine from 'https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/module.esm.js';
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // Importando signInWithEmailAndPassword explicitamente
         import { getAuth, signInWithCustomToken, signInAnonymously, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Configuração do Firebase específica do projeto
         const customFirebaseConfig = {
             apiKey: "AIzaSyBh4O0---MzHE_F8AjeB3fVk3DxOGVHhdw",
             authDomain: "calhas-norte-b7c06.firebaseapp.com",
@@ -697,7 +1329,6 @@
             storageBucket: "calhas-norte-b7c06.firebasestorage.app",
             messagingSenderId: "938655639840",
             appId: "1:938655639840:web:e429bcb73124c4b5164f45"
-
         };
 
         const isCanvasEnv = typeof __firebase_config !== 'undefined';
@@ -719,8 +1350,19 @@
             if(type === 'employee') return `${root}/rh/funcionarios`;
             if(type === 'material') return `${root}/estoque/materiais`;
             if(type === 'payable') return `${root}/financeiro/contas`;
+            if(type === 'cost') return `${root}/financeiro/custos_obra`;
+            if(type === 'client') return `${root}/geral/clientes`; 
+            if(type === 'product') return `${root}/geral/produtos`; 
+            if(type === 'tax') return `${root}/geral/impostos`; 
             return `${root}/geral/itens`;
         }
+        
+        const COURSES_DEF = [
+            { key: 'safety', label: 'Segurança do Trabalho' },
+            { key: 'machinery', label: 'Manuseio de Maquinário' },
+            { key: 'rappel', label: 'Rapel' },
+            { key: 'measurement', label: 'Medição Predial' }
+        ];
 
         const appData = () => ({
             isLoggedIn: false,
@@ -734,13 +1376,37 @@
             // View State
             currentView: 'kanban', 
             sidebarOpen: false,
-            selectedMonth: new Date().toISOString().slice(0, 7), // YYYY-MM
+            selectedMonth: new Date().toISOString().slice(0, 7),
             
+            // Filtros
+            filterStartDate: '',
+            filterEndDate: '',
+            filterDateType: 'createdAt',
+            filterId: '',
+            filterService: '',
+            filterStatus: '',
+            filterGeneral: '', 
+
+            // Modal Logic
+            linkToExisting: false,
+            selectedParentId: '',
+            hasLabor: false, 
+            coursesDef: COURSES_DEF,
+            
+            costChecks: {
+                material: false, rawMaterial: false, meal: false, painting: false, 
+                operational: false, transport: false, unforeseen: false, tax: false
+            },
+
             // Data Arrays
             projects: [],
             employees: [],
             materials: [],
             payables: [],
+            projectCosts: [],
+            clients: [],
+            products_catalog: [],
+            taxes: [],
             
             // Modal State
             showModal: false,
@@ -759,23 +1425,171 @@
             ],
 
             // Computeds
+            get filteredProjects() {
+                let items = this.projects;
+                if (this.currentView === 'counter') {
+                    items = items.filter(p => p.category === 'counter');
+                } else if (['kanban', 'list', 'invoices'].includes(this.currentView)) {
+                    items = items.filter(p => !p.category || p.category === 'work');
+                }
+
+                if (this.filterStartDate || this.filterEndDate) {
+                    if (this.filterDateType === 'createdAt') {
+                        const start = this.filterStartDate ? new Date(this.filterStartDate).getTime() : 0;
+                        const end = this.filterEndDate ? new Date(this.filterEndDate).getTime() + 86400000 : Infinity; 
+                        items = items.filter(item => {
+                            const itemDate = item.createdAt ? (item.createdAt.seconds * 1000) : 0;
+                            return itemDate >= start && itemDate <= end;
+                        });
+                    } else {
+                        const start = this.filterStartDate || '0000-00-00';
+                        const end = this.filterEndDate || '9999-99-99';
+                        items = items.filter(item => {
+                            const d = item[this.filterDateType];
+                            return d && d >= start && d <= end;
+                        });
+                    }
+                }
+
+                if (this.filterId) items = items.filter(i => (i.customId + '').includes(this.filterId));
+                if (this.filterService) items = items.filter(i => i.serviceType === this.filterService);
+                if (this.filterStatus) items = items.filter(i => i.status === this.filterStatus);
+
+                return items.sort((a, b) => (b.customId || 0) - (a.customId || 0));
+            },
+
+            // --- NOVOS COMPUTEDS DE FILTRO E ORDENAÇÃO ---
+            get sortedFilteredClients() {
+                let items = this.clients;
+                if(this.filterGeneral) {
+                    const q = this.filterGeneral.toLowerCase();
+                    items = items.filter(c => 
+                        (c.name && c.name.toLowerCase().includes(q)) || 
+                        (c.fantasy && c.fantasy.toLowerCase().includes(q)) || 
+                        (c.code && c.code.toLowerCase().includes(q)) ||
+                        (c.document && c.document.includes(q))
+                    );
+                }
+                return items.sort((a, b) => {
+                    const codeA = parseInt(a.code) || 0;
+                    const codeB = parseInt(b.code) || 0;
+                    if (codeA !== 0 && codeB !== 0) return codeB - codeA;
+                    return (b.code || '').localeCompare(a.code || '');
+                });
+            },
+
+            get sortedFilteredProducts() {
+                let items = this.products_catalog;
+                if(this.filterGeneral) {
+                    const q = this.filterGeneral.toLowerCase();
+                    items = items.filter(p => 
+                        (p.description && p.description.toLowerCase().includes(q)) || 
+                        (p.code && p.code.toLowerCase().includes(q)) ||
+                        (p.idCode && p.idCode.toLowerCase().includes(q))
+                    );
+                }
+                return items.sort((a, b) => (b.code || '').localeCompare(a.code || ''));
+            },
+
+            get sortedFilteredTaxes() {
+                let items = this.taxes;
+                if(this.filterGeneral) {
+                    const q = this.filterGeneral.toLowerCase();
+                    items = items.filter(t => 
+                        (t.AP_NCM && t.AP_NCM.toLowerCase().includes(q)) ||
+                        (t.CODIGOID && t.CODIGOID.toLowerCase().includes(q))
+                    );
+                }
+                return items;
+            },
+
+            get nextClientCode() {
+                if (this.clients.length === 0) return 1;
+                const max = this.clients.reduce((acc, client) => {
+                    const code = parseInt(client.code) || 0;
+                    return code > acc ? code : acc;
+                }, 0);
+                return max + 1;
+            },
+
+            get calculatedTotalCost() {
+                if (this.modalType !== 'cost' || !this.currentItem.costs) return 0;
+                const c = this.currentItem.costs;
+                let total = 0;
+                
+                if(this.costChecks.material && c.materials) {
+                    Object.entries(c.materials).forEach(([key, m]) => {
+                        if (key === 'RawMaterial' && this.costChecks.rawMaterial) {
+                             total += (parseFloat(m.meters) || 0) * (parseFloat(m.pricePerMeter) || 0);
+                        } else {
+                             total += (parseFloat(m.qty) || 0) * (parseFloat(m.unitCost) || 0);
+                        }
+                    });
+                }
+                if(this.costChecks.meal) total += parseFloat(c.meal || 0);
+                if(this.costChecks.painting) total += parseFloat(c.painting || 0);
+                if(this.costChecks.operational) total += parseFloat(c.operational || 0);
+                if(this.costChecks.transport) total += parseFloat(c.transport || 0);
+                if(this.costChecks.unforeseen) total += parseFloat(c.unforeseen || 0);
+                if(this.costChecks.tax) total += parseFloat(c.tax || 0);
+                
+                return total;
+            },
+
             get kpis() {
+                const items = this.filteredProjects;
+                const serviceItems = items.filter(i => !i.description?.includes('Mão de Obra'));
+                const laborItems = items.filter(i => i.description?.includes('Mão de Obra'));
+
                 return {
-                    totalValue: this.projects.reduce((acc, item) => acc + (parseFloat(item.value) || 0), 0),
-                    activeWorks: this.projects.filter(i => ['aprovado', 'instalacao'].includes(i.status)).length
+                    totalServiceOnly: serviceItems.reduce((acc, item) => acc + (parseFloat(item.serviceValue) || 0), 0),
+                    totalLaborOnly: laborItems.reduce((acc, item) => acc + (parseFloat(item.serviceValue) || 0), 0),
+                    activeWorks: items.filter(i => ['aprovado', 'instalacao'].includes(i.status)).length
                 }
             },
             
             get filteredPayables() {
-                return this.payables.filter(p => p.dueDate && p.dueDate.startsWith(this.selectedMonth))
-                                    .sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+                let manualPayables = this.payables.filter(p => p.dueDate && p.dueDate.startsWith(this.selectedMonth));
+                const activeEmployees = this.employees.filter(e => e.isActive && e.salary > 0);
+                const automaticSalaries = activeEmployees.map(emp => {
+                    const alreadyExists = manualPayables.find(p => p.category === 'Salario' && p.description.includes(emp.name));
+                    if (alreadyExists) return null;
+                    return {
+                        id: 'auto_' + emp.id,
+                        isAuto: true,
+                        description: 'Salário - ' + emp.name,
+                        category: 'Salario',
+                        amount: emp.salary,
+                        dueDate: this.selectedMonth + '-05',
+                        isPaid: false,
+                        employeeId: emp.id
+                    };
+                }).filter(i => i !== null);
+                return [...manualPayables, ...automaticSalaries].sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+            },
+            
+            get uniqueProjects() {
+                const unique = {};
+                this.projects.forEach(p => {
+                    if(p.customId && !unique[p.customId] && (!p.category || p.category === 'work')) {
+                        unique[p.customId] = p;
+                    }
+                });
+                return Object.values(unique).sort((a,b) => b.customId - a.customId);
+            },
+            
+            get nextId() {
+                const ids = this.projects.map(p => parseInt(p.customId || 0));
+                const maxId = ids.length > 0 ? Math.max(...ids) : 1000;
+                return maxId + 1;
             },
 
             get pageTitle() {
                 const map = {
-                    'kanban': 'Quadro de Serviços', 'list': 'Lista de Serviços',
+                    'kanban': 'Quadro de Serviços', 'list': 'Lista de Serviços', 'counter': 'Venda Balcão',
                     'employees': 'Gestão de Funcionários', 'materials': 'Estoque de Matéria Prima',
-                    'payables': 'Contas a Pagar', 'invoices': 'Emissão de Nota Fiscal'
+                    'payables': 'Contas a Pagar', 'invoices': 'Emissão de Nota Fiscal', 'costs': 'Custos de Obra', 'profitability': 'DRE por Obra',
+                    'clients': 'Gestão de Clientes', 'products_mgr': 'Catálogo de Produtos', 'taxes': 'Tabela de Impostos'
                 };
                 return map[this.currentView];
             },
@@ -783,28 +1597,427 @@
             get modalTitle() {
                 const map = {
                     'project': 'Orçamento', 'employee': 'Funcionário',
-                    'material': 'Item', 'payable': 'Conta'
+                    'material': 'Item', 'payable': 'Conta', 'cost': 'Custo de Obra',
+                    'client': 'Cliente', 'product': 'Produto', 'tax': 'Imposto'
                 };
                 return map[this.modalType];
             },
 
             get addButtonText() {
                 const map = {
-                    'kanban': 'Novo Orçamento', 'list': 'Novo Orçamento',
+                    'kanban': 'Novo Orçamento', 'list': 'Novo Orçamento', 'counter': 'Nova Venda',
                     'employees': 'Novo Funcionário', 'materials': 'Novo Material',
-                    'payables': 'Nova Conta'
+                    'payables': 'Nova Conta', 'costs': 'Novo Custo',
+                    'clients': 'Novo Cliente', 'products_mgr': 'Novo Produto', 'taxes': 'Novo Imposto'
                 };
                 return map[this.currentView];
+            },
+            
+            get profitabilityData() {
+                let targetCustomIds = this.projects
+                    .filter(p => !p.category || p.category === 'work')
+                    .map(p => p.customId)
+                    .filter((v, i, a) => a.indexOf(v) === i); 
+
+                if (this.filterId) targetCustomIds = targetCustomIds.filter(id => (id + '').includes(this.filterId));
+                targetCustomIds.sort((a, b) => b - a);
+
+                const rows = targetCustomIds.map(cid => {
+                    const workItems = this.projects.filter(p => p.customId === cid);
+                    const mainItem = workItems[0] || {};
+                    const contractValue = parseFloat(mainItem.contractValue || 0);
+
+                    const sumServices = workItems.filter(i => !i.description?.includes('Mão de Obra')).reduce((acc, curr) => acc + (parseFloat(curr.serviceValue) || 0), 0);
+                    const sumLabor = workItems.filter(i => i.description?.includes('Mão de Obra')).reduce((acc, curr) => acc + (parseFloat(curr.serviceValue) || 0), 0);
+                    const relatedCosts = this.projectCosts.filter(c => c.projectCustomId === cid).reduce((sum, c) => sum + (parseFloat(c.totalCost) || 0), 0);
+                    
+                    const profit = sumServices - relatedCosts;
+                    const margin = sumServices > 0 ? ((profit / sumServices) * 100).toFixed(1) : 0;
+                    const progression = contractValue > 0 ? ((sumServices / contractValue) * 100).toFixed(1) : 0;
+
+                    return {
+                        id: mainItem.id, customId: cid, clientName: mainItem.clientName,
+                        contractValue: contractValue, totalServices: sumServices, progression: progression,
+                        totalLabor: sumLabor, cost: relatedCosts, profit: profit, margin: margin
+                    };
+                });
+
+                const totalServices = rows.reduce((acc, r) => acc + r.totalServices, 0);
+                const totalLabor = rows.reduce((acc, r) => acc + r.totalLabor, 0);
+                const totalCosts = rows.reduce((acc, r) => acc + r.cost, 0);
+                const grossProfit = totalServices - totalCosts;
+                const totalMargin = totalServices > 0 ? ((grossProfit / totalServices) * 100).toFixed(1) : 0;
+
+                return { rows, totalServices, totalLabor, totalCosts, grossProfit, margin: totalMargin };
             },
 
             init() {
                 this.checkAuth();
-                this.$watch('currentView', () => setTimeout(() => lucide.createIcons(), 100));
+                this.$watch('currentView', (val) => {
+                    setTimeout(() => lucide.createIcons(), 100);
+                    if (val === 'profitability') setTimeout(() => this.initProfitChart(), 300);
+                });
+                this.$watch('filterId', () => {
+                    if (this.currentView === 'profitability') setTimeout(() => this.initProfitChart(), 300);
+                });
+                this.$watch('selectedParentId', (val) => {
+                    if (val && this.linkToExisting) {
+                        const parent = this.projects.find(p => p.customId == val);
+                        if (parent) {
+                            this.currentItem.clientName = parent.clientName;
+                            this.currentItem.address = parent.address;
+                            this.currentItem.phone = parent.phone;
+                            this.currentItem.contractValue = parent.contractValue;
+                            this.currentItem.budgetDate = parent.budgetDate;
+                            this.currentItem.contractDate = parent.contractDate;
+                        }
+                    }
+                });
             },
             
             setView(view) {
                 this.currentView = view;
                 this.sidebarOpen = false;
+                this.filterId = ''; this.filterService = ''; this.filterStatus = ''; this.filterGeneral = '';
+            },
+
+            // --- METHODS ---
+            
+            initProfitChart() {
+                if(window.profitChartInstance) window.profitChartInstance.destroy();
+                const ctx = document.getElementById('profitabilityChart');
+                if(!ctx) return;
+                const data = this.profitabilityData;
+                const displayRows = data.rows.slice(0, 10);
+                const labels = displayRows.map(r => `#${r.customId}`);
+                const revenues = displayRows.map(r => r.totalServices);
+                const costs = displayRows.map(r => r.cost);
+
+                window.profitChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'Receita (Serviços)', data: revenues, backgroundColor: '#22c55e' },
+                            { label: 'Despesas', data: costs, backgroundColor: '#ef4444' }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+                });
+            },
+            
+            updateCostProjectData() {
+                if (this.modalType === 'cost' && this.currentItem.projectRefId) {
+                    const project = this.projects.find(p => p.id === this.currentItem.projectRefId);
+                    if (project) {
+                        this.currentItem.projectCustomId = project.customId;
+                        this.currentItem.clientName = project.clientName;
+                    }
+                }
+            },
+            
+            isDateExpired(dateStr) {
+                if (!dateStr) return false;
+                const today = new Date().toISOString().split('T')[0];
+                return dateStr <= today;
+            },
+            
+            hasExpiredCourse(emp) {
+                if (!emp.coursesList) return false;
+                const today = new Date().toISOString().split('T')[0];
+                return emp.coursesList.some(c => c.expiration && c.expiration <= today);
+            },
+            
+            formatPhoneOnImport(raw) {
+                if (!raw) return '';
+                let nums = raw.replace(/\D/g, '');
+                if (nums.length === 10) return nums.replace(/(\d{2})(\d{4})(\d{4})/, '$1 $2-$3');
+                else if (nums.length === 11) return nums.replace(/(\d{2})(\d{5})(\d{4})/, '$1 $2-$3');
+                return raw;
+            },
+            
+            // --- Course Management Methods ---
+            addCourse() {
+                if(!this.currentItem.coursesList) this.currentItem.coursesList = [];
+                this.currentItem.coursesList.push({ name: '', completion: '', expiration: '' });
+            },
+            
+            removeCourse(index) {
+                this.currentItem.coursesList.splice(index, 1);
+            },
+
+            // --- EXPORT TO EXCEL ---
+            exportToExcel(type) {
+                let dataToExport = [];
+                let fileName = '';
+
+                if (type === 'clients') {
+                    fileName = 'Clientes_CalhasNorte.xlsx';
+                    dataToExport = this.clients.map(c => ({
+                        'Código': c.code,
+                        'Documento': c.document,
+                        'Nome/Razão': c.name,
+                        'Fantasia': c.fantasy,
+                        'Tipo': c.type,
+                        'Telefone': c.phone,
+                        'Celular': c.cell,
+                        'Email': c.email,
+                        'Endereço': c.address,
+                        'Número': c.number,
+                        'Bairro': c.district,
+                        'Cidade': c.city,
+                        'UF': c.state,
+                        'Data Cadastro': c.registerDate
+                    }));
+                } else if (type === 'products') {
+                    fileName = 'Produtos_CalhasNorte.xlsx';
+                    dataToExport = this.products_catalog.map(p => ({
+                        'Código': p.code,
+                        'ID Aux': p.idCode,
+                        'Descrição': p.description,
+                        'Preço Venda': p.price,
+                        'Grupo': p.group,
+                        'Subgrupo': p.subgroup,
+                        'Modelo': p.model,
+                        'Custo': p.costPrice,
+                        'Fornecedor': p.supplier,
+                        'NCM': p.ncm,
+                        'Imposto': p.taxCode,
+                        'Unidade': p.unit,
+                        'Data Cadastro': p.registerDate
+                    }));
+                } else if (type === 'taxes') {
+                    fileName = 'Impostos_CalhasNorte.xlsx';
+                    dataToExport = this.taxes.map(t => ({
+                        'AP_NCM': t.AP_NCM, 'AR_ESTADO': t.AR_ESTADO, 'AR_ICMS': t.AR_ICMS, 'AR_PIS': t.AR_PIS, 'AR_COFINS': t.AR_COFINS
+                    }));
+                }
+
+                if(dataToExport.length === 0) {
+                    alert("Não há dados para exportar.");
+                    return;
+                }
+
+                const ws = XLSX.utils.json_to_sheet(dataToExport);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Dados");
+                XLSX.writeFile(wb, fileName);
+            },
+
+            async handleFileUpload(event, type) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const text = e.target.result;
+                    const rows = text.split('\n').filter(row => row.trim() !== '');
+                    
+                    let count = 0;
+                    const colName = type === 'clients' ? 'clientes' : (type === 'products' ? 'produtos' : 'impostos');
+                    const today = new Date().toISOString().split('T')[0];
+                    
+                    for (let i = 1; i < rows.length; i++) { // Pula header
+                        const cols = rows[i].split(';'); 
+                        const finalCols = cols.length > 1 ? cols : rows[i].split(','); 
+                        
+                        if (finalCols.length < 2) continue;
+
+                        let payload = {};
+                        if (type === 'clients') {
+                            const tipoRaw = (finalCols[4]?.trim() || 'Juridica').toLowerCase();
+                            const tipoFinal = tipoRaw.includes('fisica') ? 'Fisica' : 'Juridica';
+
+                            payload = {
+                                code: finalCols[0]?.trim() || '',
+                                document: finalCols[1]?.trim() || '',
+                                name: finalCols[2]?.trim() || '',
+                                fantasy: finalCols[3]?.trim() || '',
+                                type: tipoFinal,
+                                phone: this.formatPhoneOnImport(finalCols[5]?.trim()),
+                                cell: this.formatPhoneOnImport(finalCols[6]?.trim()),
+                                registerDate: today, 
+                                email: finalCols[7]?.trim() || '', 
+                                zip: finalCols[8]?.trim() || '',
+                                address: finalCols[9]?.trim() || '',
+                                number: finalCols[10]?.trim() || '',
+                                complement: finalCols[11]?.trim() || '',
+                                district: finalCols[12]?.trim() || '',
+                                city: finalCols[13]?.trim() || '',
+                                state: finalCols[14]?.trim() || '',
+                                notes: finalCols[15]?.trim() || '',
+                                createdAt: { seconds: Date.now() / 1000 }
+                            };
+                        } else if (type === 'products') {
+                             // Ordem: Cod, ID, Desc, Preço, Grupo, Sub, Model, Custo, Fornec, NCM, Imposto, UN
+                            payload = {
+                                code: finalCols[0]?.trim() || '',
+                                idCode: finalCols[1]?.trim() || '',
+                                description: finalCols[2]?.trim() || '',
+                                price: parseFloat(finalCols[3]?.trim().replace(',','.')) || 0,
+                                group: finalCols[4]?.trim() || '',
+                                subgroup: finalCols[5]?.trim() || '',
+                                model: finalCols[6]?.trim() || '',
+                                costPrice: parseFloat(finalCols[7]?.trim().replace(',','.')) || 0,
+                                registerDate: today, 
+                                supplier: finalCols[9]?.trim() || '',
+                                ncm: finalCols[10]?.trim() || '',
+                                taxCode: finalCols[11]?.trim() || '',
+                                unit: finalCols[12]?.trim() || 'UN',
+                                createdAt: { seconds: Date.now() / 1000 }
+                            };
+                        } else if (type === 'taxes') {
+                             payload = {
+                                AP_NCM: finalCols[0]?.trim() || '',
+                                AR_COFINS: parseFloat(finalCols[1]?.trim().replace(',','.')) || 0,
+                                AR_CSLL: parseFloat(finalCols[2]?.trim().replace(',','.')) || 0,
+                                AR_ICMS: parseFloat(finalCols[3]?.trim().replace(',','.')) || 0,
+                                AR_IPI: parseFloat(finalCols[4]?.trim().replace(',','.')) || 0,
+                                AR_IR: parseFloat(finalCols[5]?.trim().replace(',','.')) || 0,
+                                AR_ISS: parseFloat(finalCols[6]?.trim().replace(',','.')) || 0,
+                                AR_ST_MVA: parseFloat(finalCols[7]?.trim().replace(',','.')) || 0,
+                                AR_PIS: parseFloat(finalCols[8]?.trim().replace(',','.')) || 0,
+                                AR_BASE_ICMS: parseFloat(finalCols[9]?.trim().replace(',','.')) || 0,
+                                AR_BASE_IPI: parseFloat(finalCols[10]?.trim().replace(',','.')) || 0,
+                                AR_ESTADO: finalCols[11]?.trim() || '',
+                                AR_TIPOCLI: finalCols[12]?.trim() || '',
+                                CODIGOID: finalCols[13]?.trim() || '',
+                                AR_CODIGO_DAP: finalCols[14]?.trim() || '',
+                                AR_OPERACAO: finalCols[15]?.trim() || '',
+                                AR_ST: finalCols[16]?.trim() || '',
+                                AR_ICM_SITT: finalCols[17]?.trim() || '',
+                                AR_IPI_SITT: finalCols[18]?.trim() || '',
+                                AR_COF_SITT: finalCols[19]?.trim() || '',
+                                AR_PIS_SITT: finalCols[20]?.trim() || '',
+                                AR_ISS_SITT: finalCols[21]?.trim() || '',
+                                AR_CFOP: finalCols[22]?.trim() || '',
+                                AR_CSOSN: finalCols[23]?.trim() || '',
+                                AR_RED_ISMST: parseFloat(finalCols[24]?.trim().replace(',','.')) || 0,
+                                AR_FILIAL: finalCols[25]?.trim() || '',
+                                AR_PESSOA: finalCols[26]?.trim() || '',
+                                AR_PER_FCP: parseFloat(finalCols[27]?.trim().replace(',','.')) || 0,
+                                AR_PER_ICMS_I: parseFloat(finalCols[28]?.trim().replace(',','.')) || 0,
+                                AR_PER_ICMS_P: parseFloat(finalCols[29]?.trim().replace(',','.')) || 0,
+                                createdAt: { seconds: Date.now() / 1000 }
+                             };
+                        }
+
+                        if (db) await addDoc(collection(db, colName), payload);
+                        else {
+                            if(type === 'clients') this.clients.push({id: Math.random(), ...payload});
+                            else if(type === 'products') this.products_catalog.push({id: Math.random(), ...payload});
+                            else this.taxes.push({id: Math.random(), ...payload});
+                        }
+                        count++;
+                    }
+                    alert(`${count} registros importados com sucesso!`);
+                    event.target.value = ''; 
+                };
+                reader.readAsText(file, 'ISO-8859-1');
+            },
+            
+            // --- DELETE ALL PRODUCTS FUNCTION ---
+            async deleteAllProducts() {
+                if (!confirm("TEM CERTEZA? Isso excluirá TODOS os produtos cadastrados. Esta ação não pode ser desfeita.")) return;
+                
+                this.isLoading = true;
+                try {
+                    if (db) {
+                        const batchLimit = 500;
+                        const colRef = collection(db, 'produtos');
+                        const snapshot = await getDocs(colRef);
+                        
+                        const total = snapshot.docs.length;
+                        if (total === 0) {
+                            alert("Não há produtos para excluir.");
+                            this.isLoading = false;
+                            return;
+                        }
+
+                        // Firestore batch delete loop
+                        const chunks = [];
+                        let currentChunk = [];
+                        
+                        snapshot.docs.forEach((doc) => {
+                            currentChunk.push(doc.id);
+                            if (currentChunk.length === batchLimit) {
+                                chunks.push(currentChunk);
+                                currentChunk = [];
+                            }
+                        });
+                        if (currentChunk.length > 0) chunks.push(currentChunk);
+
+                        for (const chunk of chunks) {
+                            const batch = writeBatch(db);
+                            chunk.forEach(id => {
+                                batch.delete(doc(db, 'produtos', id));
+                            });
+                            await batch.commit();
+                        }
+                        alert(`${total} produtos excluídos com sucesso.`);
+                    } else {
+                        // Mock Mode
+                        this.products_catalog = [];
+                        alert("Todos os produtos foram excluídos (modo simulação).");
+                    }
+                } catch (e) {
+                    console.error("Error deleting all products:", e);
+                    alert("Erro ao excluir produtos: " + e.message);
+                } finally {
+                    this.isLoading = false;
+                }
+            },
+            
+             // --- DELETE ALL CLIENTS FUNCTION ---
+            async deleteAllClients() {
+                if (!confirm("TEM CERTEZA? Isso excluirá TODOS os clientes cadastrados. Esta ação não pode ser desfeita.")) return;
+                
+                this.isLoading = true;
+                try {
+                    if (db) {
+                        const batchLimit = 500;
+                        const colRef = collection(db, 'clientes');
+                        const snapshot = await getDocs(colRef);
+                        
+                        const total = snapshot.docs.length;
+                        if (total === 0) {
+                            alert("Não há clientes para excluir.");
+                            this.isLoading = false;
+                            return;
+                        }
+
+                        // Firestore batch delete loop
+                        const chunks = [];
+                        let currentChunk = [];
+                        
+                        snapshot.docs.forEach((doc) => {
+                            currentChunk.push(doc.id);
+                            if (currentChunk.length === batchLimit) {
+                                chunks.push(currentChunk);
+                                currentChunk = [];
+                            }
+                        });
+                        if (currentChunk.length > 0) chunks.push(currentChunk);
+
+                        for (const chunk of chunks) {
+                            const batch = writeBatch(db);
+                            chunk.forEach(id => {
+                                batch.delete(doc(db, 'clientes', id));
+                            });
+                            await batch.commit();
+                        }
+                        alert(`${total} clientes excluídos com sucesso.`);
+                    } else {
+                        // Mock Mode
+                        this.clients = [];
+                        alert("Todos os clientes foram excluídos (modo simulação).");
+                    }
+                } catch (e) {
+                    console.error("Error deleting all clients:", e);
+                    alert("Erro ao excluir clientes: " + e.message);
+                } finally {
+                    this.isLoading = false;
+                }
             },
 
             // --- AUTH ---
@@ -818,43 +2031,24 @@
             },
 
             async login() {
-                this.isLoading = true;
-                this.loginError = '';
+                this.isLoading = true; this.loginError = '';
                 try {
                     if (auth) {
-                        // Lógica prioritária: Email/Senha
-                        if (this.loginForm.email && this.loginForm.password) {
-                            await signInWithEmailAndPassword(auth, this.loginForm.email, this.loginForm.password);
-                        } else {
-                            // Fallback para Anônimo se campos vazios (Demo)
-                            await signInAnonymously(auth);
-                        }
+                        if (this.loginForm.email && this.loginForm.password) await signInWithEmailAndPassword(auth, this.loginForm.email, this.loginForm.password);
+                        else await signInAnonymously(auth);
                     } else {
-                        // Mock
                         await new Promise(r => setTimeout(r, 800));
-                        this.isLoggedIn = true;
-                        this.loadAllData();
+                        this.isLoggedIn = true; this.loadAllData();
                     }
                 } catch (e) { 
-                    console.error("Login Error:", e);
-                    // Tradução amigável dos erros
-                    if (e.code === 'auth/invalid-credential' || e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password') {
-                        this.loginError = "Email ou senha incorretos.";
-                    } else if (e.code === 'auth/operation-not-allowed') {
-                        this.loginError = "Método de login não habilitado no Firebase Console.";
-                    } else if (e.code === 'auth/too-many-requests') {
-                        this.loginError = "Muitas tentativas. Tente novamente mais tarde.";
-                    } else {
-                        this.loginError = "Erro ao entrar: " + e.message;
-                    }
+                    this.loginError = "Erro ao entrar. Verifique suas credenciais.";
                 } 
                 finally { this.isLoading = false; }
             },
 
             async logout() {
                 if (auth) await signOut(auth);
-                this.isLoggedIn = false;
-                this.projects = []; this.employees = []; this.materials = []; this.payables = [];
+                this.isLoggedIn = false; this.projects = []; this.employees = []; this.materials = []; this.payables = []; this.clients = []; this.products_catalog = []; this.taxes = [];
             },
 
             // --- DATA LOADING ---
@@ -863,13 +2057,21 @@
                 this.loadCollection('employee', 'employees');
                 this.loadCollection('material', 'materials');
                 this.loadCollection('payable', 'payables');
+                this.loadCollection('cost', 'projectCosts');
+                this.loadCollection('client', 'clients');
+                this.loadCollection('product', 'products_catalog');
+                this.loadCollection('tax', 'taxes');
             },
 
             loadCollection(type, arrayName) {
                 if (db) {
                     const collectionName = type === 'project' ? 'orcamentos' : 
                                            type === 'employee' ? 'funcionarios' :
-                                           type === 'material' ? 'materiais' : 'financeiro';
+                                           type === 'material' ? 'materiais' : 
+                                           type === 'cost' ? 'custos_obra' : 
+                                           type === 'client' ? 'clientes' :
+                                           type === 'product' ? 'produtos' : 
+                                           type === 'tax' ? 'impostos' : 'financeiro';
                     
                     const q = query(collection(db, collectionName));
                     onSnapshot(q, (snapshot) => {
@@ -883,10 +2085,18 @@
 
             loadMockData(arrayName) {
                 const mocks = {
-                    'projects': [{ id: 1, clientName: 'Padaria Central', status: 'aprovado', value: 1500, createdAt: {seconds: Date.now()/1000}, serviceType: 'Calhas' }],
-                    'employees': [{ id: 1, name: 'João Silva', isActive: true, cpf: '12345678900', role: 'Instalador', phone: '119999999', salary: 2500, extraValue: 150 }],
+                    'projects': [{ 
+                        id: 1, customId: 1001, category: 'work', clientName: 'Padaria Central', status: 'aprovado', 
+                        contractValue: 5000, serviceValue: 1500, createdAt: {seconds: Date.now()/1000}, serviceType: 'Calhas',
+                        budgetDate: '2023-10-01', contractDate: '2023-10-05', billingDate: '2023-10-20', revenueDate: '2023-10-25'
+                    }],
+                    'employees': [{ id: 1, name: 'João Silva', isActive: true, cpf: '12345678900', role: 'Instalador', phone: '119999999', salary: 2500, extraValue: 150, courses: { safety: { expiration: '2023-01-01' } } }],
                     'materials': [{ id: 1, name: 'Chapa Galv. 28', status: 'Em Estoque', orderDate: '2023-10-01', type: 'Chapas', quantity: 50, unit: 'm', cost: 45.00 }],
-                    'payables': [{ id: 1, description: 'Conta de Luz', category: 'Fixa', amount: 350.50, dueDate: this.selectedMonth + '-15', isPaid: false }]
+                    'payables': [{ id: 1, description: 'Conta de Luz', category: 'Fixa', amount: 350.50, dueDate: this.selectedMonth + '-15', isPaid: false }],
+                    'projectCosts': [{ id: 1, projectCustomId: 1001, clientName: 'Padaria Central', totalCost: 150.00, createdAt: {seconds: Date.now()/1000}, costs: { meal: 50, transport: 100 } }],
+                    'clients': [{ id: 1, code: 'C001', name: 'Padaria Central LTDA', fantasy: 'Padaria Central', document: '12345678000199', phone: '1133334444', email: 'contato@padaria.com', city: 'São Paulo', state: 'SP' }],
+                    'products_catalog': [{ id: 1, code: 'P001', description: 'Calha Moldura 28', price: 45.00, group: 'Calhas', supplier: 'Metalúrgica Aço', costPrice: 25.00 }],
+                    'taxes': [{ id: 1, AP_NCM: '73089010', AR_ICMS: 18, AR_ESTADO: 'SP', CODIGOID: 'IMP001' }]
                 };
                 if(this[arrayName].length === 0) this[arrayName] = mocks[arrayName] || [];
             },
@@ -897,73 +2107,79 @@
                 this.isSaving = true;
                 const data = { ...this.currentItem };
                 
-                // Conversão de Status do Funcionário para Boolean (Correção)
-                if (this.modalType === 'employee') {
-                    // Garante que "true"/"false" vire true/false booleano
-                    data.isActive = String(data.isActive) === 'true';
-                }
+                if (this.modalType === 'employee') data.isActive = String(data.isActive) === 'true';
+                if (this.modalType === 'cost') data.totalCost = this.calculatedTotalCost;
 
-                // Sanitização numérica
-                ['value', 'amount', 'salary', 'extraValue', 'cost', 'quantity'].forEach(field => {
+                ['value', 'contractValue', 'serviceValue', 'amount', 'salary', 'extraValue', 'cost', 'quantity', 'price', 'costPrice', 
+                 'AR_COFINS', 'AR_CSLL', 'AR_ICMS', 'AR_IPI', 'AR_IR', 'AR_ISS', 'AR_ST_MVA', 'AR_PIS', 'AR_BASE_ICMS', 'AR_BASE_IPI', 'AR_RED_ISMST', 'AR_PER_FCP', 'AR_PER_ICMS_I', 'AR_PER_ICMS_P']
+                 .forEach(field => {
                     if(data[field]) data[field] = parseFloat(data[field]);
                 });
                 
-                // Remove campos auxiliares que não vão pro banco
+                if (this.modalType === 'project' && !this.isEditing) {
+                    if (this.linkToExisting && this.selectedParentId) data.customId = parseInt(this.selectedParentId);
+                    else data.customId = this.nextId;
+                }
+
                 const repeatCount = parseInt(data.repeatCount || 1);
                 delete data.repeatCount;
 
-                // Salvar Data Editável (Projetos)
                 if (this.modalType === 'project' && data.date) {
-                    // Converte string YYYY-MM-DD para timestamp
-                    // Usamos hora 12:00 para evitar problemas de fuso
                     const dateObj = new Date(data.date + 'T12:00:00'); 
                     data.createdAt = { seconds: dateObj.getTime() / 1000 };
-                    delete data.date; // Remove o campo auxiliar
+                    delete data.date; 
                 } else if (!data.createdAt) {
                     data.createdAt = { seconds: Date.now() / 1000 };
+                }
+
+                if ((this.modalType === 'client' || this.modalType === 'product') && !this.isEditing) {
+                    const today = new Date().toISOString().split('T')[0];
+                    if(this.modalType === 'client') data.registerDate = today;
+                    if(this.modalType === 'product') data.registerDate = today;
                 }
                 
                 try {
                     if (db) {
                         const collectionName = this.modalType === 'project' ? 'orcamentos' : 
                                                this.modalType === 'employee' ? 'funcionarios' :
-                                               this.modalType === 'material' ? 'materiais' : 'financeiro';
+                                               this.modalType === 'material' ? 'materiais' : 
+                                               this.modalType === 'cost' ? 'custos_obra' : 
+                                               this.modalType === 'client' ? 'clientes' :
+                                               this.modalType === 'product' ? 'produtos' : 
+                                               this.modalType === 'tax' ? 'impostos' : 'financeiro';
                         
                         const colRef = collection(db, collectionName);
                         
                         if (this.isEditing && this.currentItem.id) {
                             await updateDoc(doc(colRef, this.currentItem.id), data);
                         } else {
-                            // Lógica de Repetição para Contas a Pagar
                             if (this.modalType === 'payable' && repeatCount > 1) {
                                 const baseDate = new Date(data.dueDate);
                                 for(let i = 0; i < repeatCount; i++) {
                                     const newDate = new Date(baseDate);
                                     newDate.setMonth(baseDate.getMonth() + i);
-                                    
-                                    const payload = { 
-                                        ...data, 
-                                        dueDate: newDate.toISOString().split('T')[0],
-                                        createdAt: { seconds: Date.now() / 1000 } // Novo timestamp pra cada
-                                    };
+                                    const payload = { ...data, dueDate: newDate.toISOString().split('T')[0], createdAt: { seconds: Date.now() / 1000 } };
                                     await addDoc(colRef, payload);
                                 }
                             } else {
-                                // Salvamento padrão para 1 item
-                                data.createdAt = new Date(); // Timestamp servidor
-                                if (this.modalType === 'project' && this.currentItem.date) {
-                                     const dateObj = new Date(this.currentItem.date + 'T12:00:00');
-                                     data.createdAt = { seconds: dateObj.getTime() / 1000 };
-                                }
+                                if (this.modalType === 'project' && !data.createdAt) data.createdAt = new Date();
                                 await addDoc(colRef, data);
+
+                                if (this.modalType === 'project' && this.hasLabor) {
+                                    const laborData = { ...data };
+                                    delete laborData.id;
+                                    laborData.description = "Mão de Obra - " + (data.serviceType || 'Serviço');
+                                    laborData.serviceType = 'Outros'; 
+                                    laborData.serviceValue = (parseFloat(data.serviceValue) || 0) * 0.20;
+                                    laborData.createdAt = new Date(); 
+                                    await addDoc(colRef, laborData);
+                                }
                             }
                         }
                     } else {
-                        // Mock Save Logic
                         await new Promise(r => setTimeout(r, 500));
-                        const targetArrayMap = { 'project': 'projects', 'employee': 'employees', 'material': 'materials', 'payable': 'payables' };
+                        const targetArrayMap = { 'project': 'projects', 'employee': 'employees', 'material': 'materials', 'payable': 'payables', 'cost': 'projectCosts', 'client': 'clients', 'product': 'products_catalog', 'tax': 'taxes' };
                         const arrName = targetArrayMap[this.modalType];
-                        
                         if (this.isEditing) {
                             const idx = this[arrName].findIndex(i => i.id === this.currentItem.id);
                             if(idx !== -1) this[arrName][idx] = { ...data, id: this.currentItem.id };
@@ -978,68 +2194,126 @@
                 } finally { this.isSaving = false; }
             },
 
-            async deleteItem() {
-                if (!confirm("Tem certeza?")) return;
+            async deleteItem(item = null) {
+                const targetId = item ? item.id : this.currentItem.id;
+                if (!targetId) return;
+                if (!confirm("Tem certeza que deseja excluir?")) return;
+                
                 try {
                     if (db) {
-                        const collectionName = this.modalType === 'project' ? 'orcamentos' : 
-                                               this.modalType === 'employee' ? 'funcionarios' :
-                                               this.modalType === 'material' ? 'materiais' : 'financeiro';
-                        await deleteDoc(doc(db, collectionName, this.currentItem.id));
+                        let colName = this.modalType === 'project' ? 'orcamentos' : 
+                                      this.modalType === 'employee' ? 'funcionarios' :
+                                      this.modalType === 'material' ? 'materiais' :
+                                      this.modalType === 'cost' ? 'custos_obra' :
+                                      this.modalType === 'client' ? 'clientes' :
+                                      this.modalType === 'product' ? 'produtos' : 
+                                      this.modalType === 'tax' ? 'impostos' : 'financeiro';
+                        
+                        if (item) {
+                             if (this.currentView === 'employees') colName = 'funcionarios';
+                             else if (this.currentView === 'materials') colName = 'materiais';
+                             else if (this.currentView === 'payables') colName = 'financeiro';
+                             else if (this.currentView === 'costs') colName = 'custos_obra';
+                             else if (this.currentView === 'clients') colName = 'clientes';
+                             else if (this.currentView === 'products_mgr') colName = 'produtos';
+                             else if (this.currentView === 'taxes') colName = 'impostos';
+                             else colName = 'orcamentos';
+                        }
+                        await deleteDoc(doc(db, colName, targetId));
                     } else {
-                        const targetArrayMap = { 'project': 'projects', 'employee': 'employees', 'material': 'materials', 'payable': 'payables' };
-                         const arrName = targetArrayMap[this.modalType];
-                        this[arrName] = this[arrName].filter(i => i.id !== this.currentItem.id);
+                        const targetArrayMap = { 'project': 'projects', 'employee': 'employees', 'material': 'materials', 'payable': 'payables', 'cost': 'projectCosts', 'client': 'clients', 'product': 'products_catalog', 'tax': 'taxes' };
+                        const arrName = targetArrayMap[this.modalType];
+                        this[arrName] = this[arrName].filter(i => i.id !== targetId);
                     }
-                    this.closeModal();
+                    if (this.showModal) this.closeModal();
                 } catch (e) { console.error(e); }
             },
 
             async togglePaid(bill) {
                 const newState = !bill.isPaid;
-                
-                // 1. Atualização Otimista no Local (Imediata)
-                // Encontra a conta no array local e atualiza o status para recalcular os KPIs instantaneamente
-                const index = this.payables.findIndex(p => p.id === bill.id);
-                if (index !== -1) {
-                    this.payables[index].isPaid = newState;
-                    // Força a reatividade do Alpine se necessário (para arrays complexos)
-                    this.payables = [...this.payables];
-                }
-
-                // 2. Atualização no Banco de Dados
-                if (db) {
-                    await updateDoc(doc(db, 'financeiro', bill.id), { isPaid: newState });
+                if (bill.isAuto) {
+                    const payload = { description: bill.description, category: bill.category, amount: bill.amount, dueDate: bill.dueDate, isPaid: newState, createdAt: { seconds: Date.now() / 1000 } };
+                    if (db) await addDoc(collection(db, 'financeiro'), payload);
+                } else {
+                    if (db) await updateDoc(doc(db, 'financeiro', bill.id), { isPaid: newState });
                 }
             },
 
             // --- UI HELPERS ---
             openModal() {
                 this.resetForm();
-                // Determinar tipo de modal baseado na view
-                if(this.currentView === 'kanban' || this.currentView === 'list') this.modalType = 'project';
+                if(this.currentView === 'kanban' || this.currentView === 'list' || this.currentView === 'counter') this.modalType = 'project';
                 else if(this.currentView === 'employees') this.modalType = 'employee';
                 else if(this.currentView === 'materials') this.modalType = 'material';
                 else if(this.currentView === 'payables') this.modalType = 'payable';
-                
+                else if(this.currentView === 'costs') this.modalType = 'cost';
+                else if(this.currentView === 'clients') this.modalType = 'client';
+                else if(this.currentView === 'products_mgr') this.modalType = 'product';
+                else if(this.currentView === 'taxes') this.modalType = 'tax';
                 this.showModal = true;
             },
 
             editItem(item) {
                 this.currentItem = { ...item };
                 this.isEditing = true;
+                this.linkToExisting = false; 
                 
-                if (this.currentView === 'employees') this.modalType = 'employee';
-                else if (this.currentView === 'materials') this.modalType = 'material';
-                else if (this.currentView === 'payables') this.modalType = 'payable';
-                else {
-                    this.modalType = 'project';
-                    // Preparar data para edição (Timestamp -> YYYY-MM-DD)
-                    if (item.createdAt) {
-                        this.currentItem.date = this.formatDateRawISO(item.createdAt);
+                if (this.currentView === 'employees') {
+                    this.modalType = 'employee';
+                    // Converte formato antigo ou inicializa lista
+                    if (!this.currentItem.coursesList) {
+                         if (this.currentItem.courses) {
+                             // Tenta converter objeto antigo para array
+                             this.currentItem.coursesList = Object.entries(this.currentItem.courses).map(([k, v]) => ({
+                                 name: k === 'safety' ? 'Segurança do Trabalho' : k === 'machinery' ? 'Manuseio de Maquinário' : k === 'rappel' ? 'Rapel' : k === 'measurement' ? 'Medição Predial' : k,
+                                 completion: v.completion || '',
+                                 expiration: v.expiration || ''
+                             }));
+                         } else {
+                             // Default
+                             this.currentItem.coursesList = [
+                                 { name: 'Segurança do Trabalho', completion: '', expiration: '' },
+                                 { name: 'Manuseio de Maquinário', completion: '', expiration: '' },
+                                 { name: 'Rapel', completion: '', expiration: '' },
+                                 { name: 'Medição Predial', completion: '', expiration: '' }
+                             ];
+                         }
                     }
                 }
+                else if (this.currentView === 'materials') this.modalType = 'material';
+                else if (this.currentView === 'payables') this.modalType = 'payable';
+                else if (this.currentView === 'clients') this.modalType = 'client';
+                else if (this.currentView === 'products_mgr') this.modalType = 'product';
+                else if (this.currentView === 'taxes') this.modalType = 'tax';
+                else if (this.currentView === 'costs') {
+                    this.modalType = 'cost';
+                    this.costChecks = {
+                        material: !!item.costs?.material,
+                        rawMaterial: !!item.costs?.materials?.['RawMaterial']?.meters,
+                        meal: !!item.costs?.meal, painting: !!item.costs?.painting, operational: !!item.costs?.operational,
+                        transport: !!item.costs?.transport, unforeseen: !!item.costs?.unforeseen, tax: !!item.costs?.tax
+                    };
+                    
+                    if (item.costs?.materials) {
+                         const hasOtherMats = Object.keys(item.costs.materials).some(k => k !== 'RawMaterial' && (item.costs.materials[k].qty > 0));
+                         this.costChecks.material = hasOtherMats || this.costChecks.rawMaterial;
+                    }
 
+                    if (!this.currentItem.costs.materials) {
+                        this.currentItem.costs.materials = {
+                            'RawMaterial': {type: 'Galvanizada', thickness: '0.43', meters: '', pricePerMeter: ''},
+                            'PU/Vedante': {qty: '', unitCost: ''}, 'Rebite': {qty: '', unitCost: ''},
+                            'Capacete': {qty: '', unitCost: ''}, 'Porca': {qty: '', unitCost: ''}, 'Parafuso': {qty: '', unitCost: ''}
+                        };
+                    }
+                    if(!this.currentItem.costs.materials['RawMaterial']) {
+                        this.currentItem.costs.materials['RawMaterial'] = {type: 'Galvanizada', thickness: '0.43', meters: '', pricePerMeter: ''};
+                    }
+                }
+                else {
+                    this.modalType = 'project';
+                    if (item.createdAt) this.currentItem.date = this.formatDateRawISO(item.createdAt);
+                }
                 this.showModal = true;
             },
 
@@ -1051,19 +2325,56 @@
             resetForm() {
                 this.isEditing = false;
                 this.currentItem = {};
-                if(this.currentView === 'kanban' || this.currentView === 'list') {
-                    // Data de hoje como padrão para novos orçamentos
+                this.linkToExisting = false;
+                this.selectedParentId = '';
+                this.hasLabor = false; 
+                this.filterId = ''; 
+                this.costChecks = { material: false, rawMaterial: false, meal: false, painting: false, operational: false, transport: false, unforeseen: false, tax: false };
+                
+                if(this.currentView === 'kanban' || this.currentView === 'list' || this.currentView === 'counter') {
                     const today = new Date().toISOString().split('T')[0];
-                    this.currentItem = { serviceType: 'Calhas', status: 'lead', date: today };
+                    this.currentItem = { serviceType: 'Calhas', status: 'lead', date: today, budgetDate: today };
                 }
                 if(this.currentView === 'materials') this.currentItem = { unit: 'un', type: 'Chapas', status: 'Em Estoque', orderDate: new Date().toISOString().split('T')[0] };
-                if(this.currentView === 'employees') this.currentItem = { isActive: true }; // Padrão Ativo
-                if(this.currentView === 'payables') this.currentItem = { category: 'Fixa', isPaid: false, dueDate: this.selectedMonth + '-10', repeatCount: 1 };
+                if(this.currentView === 'employees') {
+                    this.currentItem = { 
+                        isActive: true, 
+                        coursesList: [
+                             { name: 'Segurança do Trabalho', completion: '', expiration: '' },
+                             { name: 'Manuseio de Maquinário', completion: '', expiration: '' },
+                             { name: 'Rapel', completion: '', expiration: '' },
+                             { name: 'Medição Predial', completion: '', expiration: '' }
+                        ]
+                    };
+                }
+                if(this.currentView === 'payables') this.currentItem = { category: 'Fixa', isPaid: false, dueDate: this.selectedMonth + '-10', repeatCount: 1, isAuto: false };
+                if(this.currentView === 'clients') {
+                    this.currentItem = { type: 'Fisica', registerDate: new Date().toISOString().split('T')[0], code: this.nextClientCode };
+                }
+                if(this.currentView === 'products_mgr') {
+                    this.currentItem = { registerDate: new Date().toISOString().split('T')[0], unit: 'UN' };
+                }
+                if(this.currentView === 'taxes') {
+                    this.currentItem = {};
+                }
+                
+                if(this.currentView === 'costs') {
+                    this.currentItem = { 
+                        costs: {
+                            materials: {
+                                'RawMaterial': {type: 'Galvanizada', thickness: '0.43', meters: '', pricePerMeter: ''},
+                                'PU/Vedante': {qty: '', unitCost: ''}, 'Rebite': {qty: '', unitCost: ''},
+                                'Capacete': {qty: '', unitCost: ''}, 'Porca': {qty: '', unitCost: ''}, 'Parafuso': {qty: '', unitCost: ''}
+                            }
+                        } 
+                    };
+                }
             },
 
             // --- FORMATTERS & UTILS ---
-            getProjectsByStatus(statusId) { return this.projects.filter(i => i.status === statusId); },
-            getItemsCount(statusId) { return this.projects.filter(i => i.status === statusId).length; },
+            getProjectsByStatus(statusId) { return this.filteredProjects.filter(i => i.status === statusId); },
+            getFilteredProjectsByStatus(statusId) { return this.filteredProjects.filter(i => i.status === statusId); },
+            getItemsCount(statusId) { return this.filteredProjects.filter(i => i.status === statusId).length; },
             
             getStatusLabel(statusId) {
                 const status = this.kanbanColumns.find(c => c.id === statusId);
@@ -1071,9 +2382,7 @@
             },
             
             getStatusTotalValue(statusId) {
-                const total = this.projects
-                    .filter(i => i.status === statusId)
-                    .reduce((acc, curr) => acc + (parseFloat(curr.value) || 0), 0);
+                const total = this.filteredProjects.filter(i => i.status === statusId).reduce((acc, curr) => acc + (parseFloat(curr.serviceValue) || 0), 0);
                 return this.formatMoney(total);
             },
             
@@ -1096,7 +2405,6 @@
             
             formatDate(timestamp) {
                 if (!timestamp) return '';
-                // Handle pure JS Date or Firebase Timestamp
                 const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
                 return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
             },
@@ -1104,7 +2412,7 @@
             formatDateRaw(dateString) {
                 if(!dateString) return '';
                 const parts = dateString.split('-');
-                return `${parts[2]}/${parts[1]}`;
+                return `${parts[2]}/${parts[1]}`; 
             },
             
             formatDateRawISO(timestamp) {
@@ -1115,11 +2423,7 @@
             
             formatCPF(cpf) {
                 if (!cpf) return '';
-                return cpf.replace(/\D/g, '')
-                    .replace(/(\d{3})(\d)/, '$1.$2')
-                    .replace(/(\d{3})(\d)/, '$1.$2')
-                    .replace(/(\d{3})(\d{1,2})/, '$1-$2')
-                    .replace(/(-\d{2})\d+?$/, '$1');
+                return cpf.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})/, '$1-$2').replace(/(-\d{2})\d+?$/, '$1');
             },
 
             formatPhone(phone) {
@@ -1136,6 +2440,16 @@
                 if(bill.isPaid) return false;
                 const today = new Date().toISOString().split('T')[0];
                 return bill.dueDate < today;
+            },
+            
+            // --- Course Management Methods ---
+            addCourse() {
+                if(!this.currentItem.coursesList) this.currentItem.coursesList = [];
+                this.currentItem.coursesList.push({ name: '', completion: '', expiration: '' });
+            },
+            
+            removeCourse(index) {
+                this.currentItem.coursesList.splice(index, 1);
             }
         });
 
