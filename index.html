@@ -161,6 +161,13 @@
                         Clientes
                     </a>
 
+                    <a href="#" @click.prevent="setView('suppliers')" 
+                       class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors"
+                       :class="currentView === 'suppliers' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'">
+                        <i data-lucide="truck" class="mr-3 h-5 w-5 flex-shrink-0" :class="currentView === 'suppliers' ? 'text-white' : 'text-slate-400 group-hover:text-white'"></i>
+                        Fornecedores
+                    </a>
+
                     <a href="#" @click.prevent="setView('products_mgr')" 
                        class="group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors"
                        :class="currentView === 'products_mgr' ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'">
@@ -232,9 +239,6 @@
                 <div class="flex items-center gap-4">
                     <!-- Botões de Ação para Clientes e Produtos -->
                     <div x-show="currentView === 'clients'" class="flex gap-2">
-                        <button @click="deleteAllClients()" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 border border-red-200">
-                            <i data-lucide="trash" class="w-4 h-4"></i> Excluir Todos
-                        </button>
                         <button @click="exportToExcel('clients')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
                             <i data-lucide="download" class="w-4 h-4"></i> Excel
                         </button>
@@ -243,10 +247,16 @@
                         </button>
                         <input type="file" x-ref="clientFile" class="hidden" accept=".csv" @change="handleFileUpload($event, 'clients')">
                     </div>
-                    <div x-show="currentView === 'products_mgr'" class="flex gap-2">
-                        <button @click="deleteAllProducts()" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 border border-red-200">
-                            <i data-lucide="trash" class="w-4 h-4"></i> Excluir Todos
+                    <div x-show="currentView === 'suppliers'" class="flex gap-2">
+                        <button @click="exportToExcel('suppliers')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                            <i data-lucide="download" class="w-4 h-4"></i> Excel
                         </button>
+                        <button @click="$refs.supplierFile.click()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                            <i data-lucide="upload" class="w-4 h-4"></i> Importar CSV
+                        </button>
+                        <input type="file" x-ref="supplierFile" class="hidden" accept=".csv" @change="handleFileUpload($event, 'suppliers')">
+                    </div>
+                    <div x-show="currentView === 'products_mgr'" class="flex gap-2">
                          <button @click="exportToExcel('products')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
                             <i data-lucide="download" class="w-4 h-4"></i> Excel
                         </button>
@@ -332,8 +342,8 @@
                     </div>
                 </div>
 
-                <!-- Filtros para Clientes, Produtos e Impostos -->
-                <div x-show="['clients', 'products_mgr', 'taxes'].includes(currentView)" class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                <!-- Filtros para Clientes, Produtos, Fornecedores e Impostos -->
+                <div x-show="['clients', 'products_mgr', 'taxes', 'suppliers'].includes(currentView)" class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                     <div class="flex flex-col gap-1 sm:col-span-2">
                         <label class="text-xs font-bold text-slate-500 uppercase">Buscar</label>
                         <input type="text" x-model="filterGeneral" placeholder="Digite para buscar..." class="border border-slate-300 rounded px-2 py-1.5 text-sm w-full">
@@ -473,6 +483,47 @@
                     </div>
                 </div>
 
+                <!-- VIEW 12: FORNECEDORES (NOVA) -->
+                <div x-show="currentView === 'suppliers'" class="bg-white rounded-lg shadow overflow-hidden border border-slate-200 table-container">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Empresa</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">CNPJ</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Telefone</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Email</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Cidade/UF</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-slate-200">
+                                <template x-for="supplier in sortedFilteredSuppliers" :key="supplier.id">
+                                    <tr class="hover:bg-slate-50 transition">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-medium text-slate-900" x-text="supplier.companyName"></div>
+                                            <div class="text-xs text-slate-500 truncate max-w-[200px]" x-text="supplier.legalName"></div>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap" x-text="formatCPF(supplier.document)"></td>
+                                        <td class="px-6 py-4 text-sm text-slate-700 whitespace-nowrap" x-text="formatPhone(supplier.phone)"></td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap" x-text="supplier.email"></td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap">
+                                            <span x-text="supplier.city"></span>
+                                        </td>
+                                        <td class="px-6 py-4 text-right flex justify-end gap-2 whitespace-nowrap">
+                                            <button @click="editItem(supplier)" class="text-brand-600 hover:text-brand-900"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                            <button @click="deleteItem(supplier)" class="text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="suppliers.length === 0">
+                                    <td colspan="6" class="px-6 py-12 text-center text-slate-500">Nenhum fornecedor cadastrado.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- VIEW 10: PRODUTOS (ATUALIZADA) -->
                 <div x-show="currentView === 'products_mgr'" class="bg-white rounded-lg shadow overflow-hidden border border-slate-200 table-container">
                     <div class="overflow-x-auto">
@@ -603,8 +654,7 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- VIEW 2: LISTA DE OBRAS & VENDA BALCÃO -->
+              <!-- VIEW 2: LISTA DE OBRAS & VENDA BALCÃO -->
                 <div x-show="['list', 'counter'].includes(currentView)" class="bg-white rounded-lg shadow overflow-hidden border border-slate-200 table-container">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-slate-200 w-full">
@@ -791,7 +841,7 @@
                     </div>
                 </div>
 
-                <!-- VIEW 4: MATÉRIA PRIMA -->
+                <!-- VIEW 4: MATÉRIA PRIMA (ATUALIZADA COM RESUMO) -->
                 <div x-show="currentView === 'materials'" class="bg-white rounded-lg shadow overflow-hidden border border-slate-200">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-slate-200">
@@ -799,8 +849,10 @@
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Item</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Qtd. Estoque</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Custo (Unit.)</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Qtd.</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Peso Total</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Custo Total</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Lucro Est.</th>
                                     <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Ações</th>
                                 </tr>
                             </thead>
@@ -809,12 +861,27 @@
                                     <tr class="hover:bg-slate-50 transition cursor-pointer">
                                         <td class="px-6 py-4 font-medium text-slate-900 cursor-pointer" @click="editItem(mat)" x-text="mat.name"></td>
                                         <td class="px-6 py-4 cursor-pointer" @click="editItem(mat)">
-                                            <span class="inline-flex text-xs leading-5 font-semibold rounded-full px-2" :class="mat.status === 'Pedido Feito' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'" x-text="mat.status || 'Em Estoque'"></span>
+                                            <span class="inline-flex text-xs leading-5 font-semibold rounded-full px-2" 
+                                                  :class="{
+                                                      'bg-yellow-100 text-yellow-800': mat.status === 'Pedido Feito',
+                                                      'bg-green-100 text-green-800': mat.status === 'Em Estoque',
+                                                      'bg-gray-100 text-gray-800': mat.status === 'Estoque Finalizado'
+                                                  }" 
+                                                  x-text="mat.status || 'Em Estoque'">
+                                            </span>
                                         </td>
                                         <td class="px-6 py-4 text-sm font-bold text-slate-700">
                                             <span x-text="mat.quantity"></span> <span x-text="mat.unit" class="text-xs font-normal text-slate-400"></span>
                                         </td>
-                                        <td class="px-6 py-4 text-sm text-slate-700" x-text="formatMoney(mat.cost)"></td>
+                                        <td class="px-6 py-4 text-sm text-slate-500">
+                                            <span x-text="mat.totalWeight ? mat.totalWeight + ' kg' : '-'"></span>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-slate-700 font-medium">
+                                            <span x-text="formatMoney(mat.totalCost)"></span>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-green-600 font-medium">
+                                            <span x-text="formatMoney(mat.totalProfit)"></span>
+                                        </td>
                                         <td class="px-6 py-4 text-right flex justify-end gap-2">
                                             <button @click="editItem(mat)" class="text-brand-600 hover:text-brand-900"><i data-lucide="pencil" class="w-4 h-4"></i></button>
                                             <button @click="deleteItem(mat)" class="text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
@@ -897,36 +964,60 @@
                             <!-- FORM: ORÇAMENTOS/PROJETOS -->
                             <template x-if="modalType === 'project'">
                                 <div class="contents">
+                                    <!-- Campos do Projeto (Mantidos) -->
                                     <div class="sm:col-span-2" x-show="!isEditing">
-                                        <div class="flex items-center justify-between mb-1">
-                                            <label class="text-xs font-bold text-slate-500 uppercase">Vincular a Obra Existente?</label>
-                                            <div class="flex items-center">
+                                        <div class="flex flex-col gap-2 p-3 bg-slate-50 rounded border border-slate-200 mb-2">
+                                            <label class="text-xs font-bold text-slate-500 uppercase">Vínculos (Opcional)</label>
+                                            
+                                            <!-- Vinculo Obra Existente -->
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-sm text-slate-600">Vincular a Obra Existente?</span>
                                                 <input type="checkbox" x-model="linkToExisting" class="mr-2 rounded text-brand-600 focus:ring-brand-500">
-                                                <span class="text-sm text-slate-600">Sim</span>
+                                            </div>
+                                            <div x-show="linkToExisting">
+                                                <select x-model="selectedParentId" class="w-full px-3 py-2 border rounded-lg bg-yellow-50 border-yellow-300">
+                                                    <option value="">Selecione uma obra...</option>
+                                                    <template x-for="p in uniqueProjects" :key="p.customId">
+                                                        <option :value="p.customId" x-text="'#' + p.customId + ' - ' + p.clientName"></option>
+                                                    </template>
+                                                </select>
+                                            </div>
+
+                                            <!-- Seleção de Cliente (Novo requisito) -->
+                                            <div class="border-t border-slate-200 mt-2 pt-2" x-show="!linkToExisting">
+                                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Buscar Cliente Cadastrado</label>
+                                                <select x-model="selectedClientId" @change="fillClientData()" class="w-full px-3 py-2 border rounded-lg bg-blue-50 border-blue-300">
+                                                    <option value="">-- Selecione para preencher --</option>
+                                                    <template x-for="c in sortedFilteredClients" :key="c.id">
+                                                        <option :value="c.id" x-text="c.name"></option>
+                                                    </template>
+                                                </select>
                                             </div>
                                         </div>
-                                        <div x-show="linkToExisting">
-                                            <select x-model="selectedParentId" class="w-full px-3 py-2 border rounded-lg bg-yellow-50 border-yellow-300">
-                                                <option value="">Selecione uma obra...</option>
-                                                <template x-for="p in uniqueProjects" :key="p.customId">
-                                                    <option :value="p.customId" x-text="'#' + p.customId + ' - ' + p.clientName"></option>
-                                                </template>
-                                            </select>
-                                        </div>
+                                        
                                         <div x-show="!linkToExisting" class="text-sm text-slate-500 bg-slate-100 p-2 rounded">
                                             Será gerado novo ID: <strong x-text="'#' + nextId"></strong>
                                         </div>
                                     </div>
+
                                     <div class="sm:col-span-2" x-show="isEditing">
                                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">ID da Obra</label>
                                         <input type="text" :value="'#' + currentItem.customId" disabled class="w-full px-3 py-2 border rounded-lg bg-slate-100 text-slate-500">
                                     </div>
+
                                     <div class="sm:col-span-2">
                                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Cliente</label>
                                         <input type="text" x-model="currentItem.clientName" class="w-full px-3 py-2 border rounded-lg" required>
                                     </div>
+                                    
+                                    <!-- Checkbox para cadastrar novo cliente -->
+                                    <div class="sm:col-span-2 flex items-center gap-2 mb-2" x-show="!selectedClientId && !isEditing && !linkToExisting && currentItem.clientName">
+                                        <input type="checkbox" x-model="saveAsNewClient" class="w-4 h-4 text-green-600 focus:ring-green-500">
+                                        <span class="text-xs font-bold text-green-700">Salvar este cliente no cadastro?</span>
+                                    </div>
+
                                     <div class="sm:col-span-2">
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Endereço</label>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Endereço Completo</label>
                                         <input type="text" x-model="currentItem.address" class="w-full px-3 py-2 border rounded-lg">
                                     </div>
                                     <div>
@@ -1071,6 +1162,42 @@
                                 </div>
                             </template>
 
+                            <!-- FORM: FORNECEDORES (NOVO) -->
+                            <template x-if="modalType === 'supplier'">
+                                <div class="contents">
+                                    <div class="sm:col-span-2">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Empresa (Nome Fantasia)</label>
+                                        <input type="text" x-model="currentItem.companyName" class="w-full px-3 py-2 border rounded-lg" required>
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Razão Social</label>
+                                        <input type="text" x-model="currentItem.legalName" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">CNPJ</label>
+                                        <input type="text" x-model="currentItem.document" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Telefone</label>
+                                        <input type="text" x-model="currentItem.phone" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">E-mail</label>
+                                        <input type="email" x-model="currentItem.email" class="w-full px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div class="sm:col-span-2 border-t border-slate-100 pt-4 mt-2 mb-2"><h4 class="text-xs font-bold text-slate-400 uppercase">Endereço</h4></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">CEP</label><input type="text" x-model="currentItem.zip" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Endereço</label><input type="text" x-model="currentItem.address" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Número</label><input type="text" x-model="currentItem.number" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Complemento</label><input type="text" x-model="currentItem.complement" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div class="sm:col-span-2"><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Bairro</label><input type="text" x-model="currentItem.district" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div class="sm:col-span-2"><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Município (Cidade/UF)</label><input type="text" x-model="currentItem.city" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div class="sm:col-span-2 border-t border-slate-100 pt-4 mt-2 mb-2"><h4 class="text-xs font-bold text-slate-400 uppercase">Outros</h4></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome Atendente</label><input type="text" x-model="currentItem.contactName" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Observação</label><input type="text" x-model="currentItem.notes" class="w-full px-3 py-2 border rounded-lg"></div>
+                                </div>
+                            </template>
+
                             <!-- FORM: PRODUTOS CATALOGO -->
                             <template x-if="modalType === 'product'">
                                 <div class="contents">
@@ -1145,18 +1272,14 @@
                                     <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_ESTADO</label><input type="text" x-model="currentItem.AR_ESTADO" class="w-full px-3 py-2 border rounded-lg" maxlength="2"></div>
                                     <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_OPERACAO</label><input type="text" x-model="currentItem.AR_OPERACAO" class="w-full px-3 py-2 border rounded-lg"></div>
                                     <div><label class="block text-xs font-bold text-slate-500 mb-1">CODIGOID</label><input type="text" x-model="currentItem.CODIGOID" class="w-full px-3 py-2 border rounded-lg"></div>
-                                    
                                     <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_ICMS</label><input type="number" step="0.01" x-model="currentItem.AR_ICMS" class="w-full px-3 py-2 border rounded-lg"></div>
                                     <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_PIS</label><input type="number" step="0.01" x-model="currentItem.AR_PIS" class="w-full px-3 py-2 border rounded-lg"></div>
                                     <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_COFINS</label><input type="number" step="0.01" x-model="currentItem.AR_COFINS" class="w-full px-3 py-2 border rounded-lg"></div>
                                     <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_IPI</label><input type="number" step="0.01" x-model="currentItem.AR_IPI" class="w-full px-3 py-2 border rounded-lg"></div>
-                                    
                                     <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_ISS</label><input type="number" step="0.01" x-model="currentItem.AR_ISS" class="w-full px-3 py-2 border rounded-lg"></div>
                                     <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_IR</label><input type="number" step="0.01" x-model="currentItem.AR_IR" class="w-full px-3 py-2 border rounded-lg"></div>
                                     <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_CSLL</label><input type="number" step="0.01" x-model="currentItem.AR_CSLL" class="w-full px-3 py-2 border rounded-lg"></div>
                                     <div><label class="block text-xs font-bold text-slate-500 mb-1">AR_ST_MVA</label><input type="number" step="0.01" x-model="currentItem.AR_ST_MVA" class="w-full px-3 py-2 border rounded-lg"></div>
-                                    
-                                    <!-- Campos Extras Simplificados -->
                                     <div class="sm:col-span-2 mt-2">
                                         <h4 class="text-xs font-bold text-slate-400 uppercase border-b pb-1 mb-2">Outros Campos</h4>
                                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1208,7 +1331,7 @@
                                                     </template>
                                                 </div>
                                             </div>
-                                            <!-- Outros Custos -->
+                                            <!-- Outros Custos (Simplificado para o bloco) -->
                                             <div class="flex items-center justify-between p-2 rounded bg-slate-50 border"><div class="flex items-center"><input type="checkbox" x-model="costChecks.meal" class="w-4 h-4 text-brand-600 rounded"><span class="ml-2 text-sm text-slate-700">Custo de Refeição</span></div><input type="number" step="0.01" x-model="currentItem.costs.meal" class="w-32 border rounded px-2 py-1 text-right" x-show="costChecks.meal" placeholder="0.00"></div>
                                             <div class="flex items-center justify-between p-2 rounded bg-slate-50 border"><div class="flex items-center"><input type="checkbox" x-model="costChecks.painting" class="w-4 h-4 text-brand-600 rounded"><span class="ml-2 text-sm text-slate-700">Custo de Pintura</span></div><input type="number" step="0.01" x-model="currentItem.costs.painting" class="w-32 border rounded px-2 py-1 text-right" x-show="costChecks.painting" placeholder="0.00"></div>
                                             <div class="flex items-center justify-between p-2 rounded bg-slate-50 border"><div class="flex items-center"><input type="checkbox" x-model="costChecks.operational" class="w-4 h-4 text-brand-600 rounded"><span class="ml-2 text-sm text-slate-700">Custo Operacional</span></div><input type="number" step="0.01" x-model="currentItem.costs.operational" class="w-32 border rounded px-2 py-1 text-right" x-show="costChecks.operational" placeholder="0.00"></div>
@@ -1223,7 +1346,7 @@
                                 </div>
                             </template>
 
-                            <!-- FORM: FUNCIONÁRIOS (ATUALIZADO - CURSOS DINÂMICOS) -->
+                            <!-- FORM: FUNCIONÁRIOS (ATUALIZADO - CURSOS COM BOTÕES) -->
                             <template x-if="modalType === 'employee'">
                                 <div class="contents">
                                     <div class="sm:col-span-2 flex items-center gap-2 mb-2 p-2 bg-slate-50 rounded border">
@@ -1241,33 +1364,41 @@
                                     <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Valor Extra</label><input type="number" step="0.01" x-model="currentItem.extraValue" class="w-full px-3 py-2 border rounded-lg" placeholder="0.00"></div>
                                     <div class="sm:col-span-2"><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Funções Extras / Obs</label><textarea x-model="currentItem.extras" rows="2" class="w-full px-3 py-2 border rounded-lg"></textarea></div>
                                     
-                                    <!-- SEÇÃO DE CURSOS DINÂMICA -->
+                                    <!-- SEÇÃO DE CURSOS DINÂMICA (ATUALIZADA COM ÍCONES) -->
                                     <div class="sm:col-span-2 border-t border-slate-100 pt-4 mt-2">
                                         <div class="flex justify-between items-center mb-2">
                                             <h4 class="text-xs font-bold text-slate-400 uppercase">Cursos e Treinamentos</h4>
-                                            <button type="button" @click="addCourse()" class="text-xs bg-brand-100 text-brand-700 px-2 py-1 rounded hover:bg-brand-200">+ Adicionar Curso</button>
+                                            <button type="button" @click="addCourse()" class="text-xs bg-brand-100 text-brand-700 px-2 py-1 rounded hover:bg-brand-200 flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> Adicionar</button>
                                         </div>
                                         <div class="space-y-2">
                                             <template x-for="(course, index) in currentItem.coursesList" :key="index">
-                                                <div class="flex flex-col sm:flex-row sm:items-end gap-2 p-2 bg-slate-50 rounded border border-slate-200 relative group">
-                                                    <div class="flex-1 w-full">
-                                                        <label class="block text-[10px] text-slate-400 mb-0.5">Nome do Curso</label>
-                                                        <input type="text" x-model="course.name" class="w-full px-2 py-1 border rounded text-xs" placeholder="Nome do Curso">
+                                                <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 relative group hover:border-slate-300 transition">
+                                                    <div class="flex flex-col sm:flex-row sm:items-end gap-2">
+                                                        <div class="flex-1 w-full">
+                                                            <label class="block text-[10px] text-slate-400 mb-0.5">Nome do Curso</label>
+                                                            <input type="text" x-model="course.name" :id="'course-name-' + index" class="w-full px-2 py-1.5 border rounded text-xs focus:ring-2 focus:ring-brand-500 focus:border-brand-500" placeholder="Nome do Curso">
+                                                        </div>
+                                                        <div class="w-full sm:w-32">
+                                                            <label class="block text-[10px] text-slate-400 mb-0.5">Conclusão</label>
+                                                            <input type="date" x-model="course.completion" class="w-full px-2 py-1.5 border rounded text-xs">
+                                                        </div>
+                                                        <div class="w-full sm:w-32">
+                                                            <label class="block text-[10px] text-slate-400 mb-0.5">Validade</label>
+                                                            <input type="date" x-model="course.expiration" class="w-full px-2 py-1.5 border rounded text-xs" :class="isDateExpired(course.expiration) ? 'border-red-300 bg-red-50 text-red-700' : ''">
+                                                        </div>
                                                     </div>
-                                                    <div class="w-full sm:w-32">
-                                                        <label class="block text-[10px] text-slate-400 mb-0.5">Conclusão</label>
-                                                        <input type="date" x-model="course.completion" class="w-full px-2 py-1 border rounded text-xs">
+                                                    <!-- BOTÕES DE AÇÃO: EDITAR e EXCLUIR -->
+                                                    <div class="flex items-center justify-end gap-2 mt-2 pt-2 border-t border-slate-200">
+                                                        <button type="button" @click="document.getElementById('course-name-' + index).focus()" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition" title="Editar curso">
+                                                            <i data-lucide="pencil" class="w-3.5 h-3.5"></i> Editar
+                                                        </button>
+                                                        <button type="button" @click="removeCourse(index)" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition" title="Excluir curso">
+                                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Excluir
+                                                        </button>
                                                     </div>
-                                                    <div class="w-full sm:w-32">
-                                                        <label class="block text-[10px] text-slate-400 mb-0.5">Validade</label>
-                                                        <input type="date" x-model="course.expiration" class="w-full px-2 py-1 border rounded text-xs" :class="isDateExpired(course.expiration) ? 'border-red-300 bg-red-50 text-red-700' : ''">
-                                                    </div>
-                                                    <button type="button" @click="removeCourse(index)" class="absolute top-1 right-1 text-slate-400 hover:text-red-500 sm:static sm:mb-1.5">
-                                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                                    </button>
                                                 </div>
                                             </template>
-                                            <div x-show="currentItem.coursesList && currentItem.coursesList.length === 0" class="text-center text-xs text-slate-400 py-2">
+                                            <div x-show="!currentItem.coursesList || currentItem.coursesList.length === 0" class="text-center text-xs text-slate-400 py-2">
                                                 Nenhum curso cadastrado.
                                             </div>
                                         </div>
@@ -1275,16 +1406,52 @@
                                 </div>
                             </template>
 
-                            <!-- FORM: MATÉRIA PRIMA -->
+                            <!-- FORM: MATÉRIA PRIMA (ATUALIZADO - CÁLCULOS TOTAIS E NOVO STATUS) -->
                             <template x-if="modalType === 'material'">
                                 <div class="contents">
                                     <div class="sm:col-span-2"><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nome do Item</label><input type="text" x-model="currentItem.name" class="w-full px-3 py-2 border rounded-lg" required></div>
-                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label><select x-model="currentItem.status" class="w-full px-3 py-2 border rounded-lg"><option value="Em Estoque">Em Estoque</option><option value="Pedido Feito">Pedido Feito</option></select></div>
-                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Data do Pedido</label><input type="date" x-model="currentItem.orderDate" class="w-full px-3 py-2 border rounded-lg"></div>
                                     <div class="sm:col-span-2"><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo/Categoria</label><select x-model="currentItem.type" class="w-full px-3 py-2 border rounded-lg"><option value="Chapas">Chapas</option><option value="Acessórios">Acessórios</option><option value="Selantes">Selantes</option><option value="Ferramentas">Ferramentas</option><option value="Outros">Outros</option></select></div>
-                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Quantidade</label><input type="number" x-model="currentItem.quantity" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    
+                                    <!-- Campos de Cálculo (Visíveis se for Chapa ou sempre que quiser calcular) -->
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Valor KG (R$)</label><input type="number" step="0.01" x-model="currentItem.pricePerKg" @input="calculateMaterial()" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Comprimento (m)</label><input type="number" step="0.01" x-model="currentItem.length" @input="calculateMaterial()" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Largura (m)</label><input type="number" step="0.01" x-model="currentItem.width" @input="calculateMaterial()" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Espessura (mm)</label><input type="number" step="0.01" x-model="currentItem.thickness" @input="calculateMaterial()" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Coeficiente</label><input type="number" step="0.001" x-model="currentItem.coefficient" @input="calculateMaterial()" class="w-full px-3 py-2 border rounded-lg" placeholder="Ex: 7.85"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Margem (%)</label><input type="number" step="0.01" x-model="currentItem.margin" @input="calculateMaterial()" class="w-full px-3 py-2 border rounded-lg" placeholder="2.44"></div>
+                                    
+                                    <!-- Campos Calculados (Read-only) -->
+                                    <div class="col-span-2 border-t border-slate-100 mt-2 pt-2 bg-slate-50 p-2 rounded">
+                                        <div class="grid grid-cols-3 gap-2 mb-2">
+                                            <div class="text-center"><label class="block text-[10px] text-slate-400 uppercase">Peso Unit. (kg)</label><span class="font-bold text-slate-700" x-text="currentItem.sheetWeight ? currentItem.sheetWeight + ' kg' : '-'"></span></div>
+                                            <div class="text-center"><label class="block text-[10px] text-slate-400 uppercase">Custo Unit.</label><span class="font-bold text-slate-700" x-text="formatMoney(currentItem.sheetCost)"></span></div>
+                                            <div class="text-center"><label class="block text-[10px] text-slate-400 uppercase">Lucro Unit.</label><span class="font-bold text-green-600" x-text="formatMoney(currentItem.sheetProfit)"></span></div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
+                                        <select x-model="currentItem.status" class="w-full px-3 py-2 border rounded-lg">
+                                            <option value="Em Estoque">Em Estoque</option>
+                                            <option value="Pedido Feito">Pedido Feito</option>
+                                            <option value="Estoque Finalizado">Estoque Finalizado</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Quantidade</label>
+                                        <input type="number" x-model="currentItem.quantity" @input="calculateMaterial()" class="w-full px-3 py-2 border rounded-lg bg-yellow-50 border-yellow-300">
+                                    </div>
                                     <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Unidade</label><select x-model="currentItem.unit" class="w-full px-3 py-2 border rounded-lg"><option value="un">un</option><option value="kg">kg</option><option value="m">m</option><option value="cx">cx</option></select></div>
-                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Custo / Valor Pago</label><input type="number" step="0.01" x-model="currentItem.cost" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    
+                                    <!-- TOTAIS DO PEDIDO -->
+                                    <div class="sm:col-span-2 border-t border-slate-100 mt-2 pt-2 bg-blue-50 p-2 rounded border border-blue-100" x-show="currentItem.quantity > 0">
+                                        <h4 class="text-xs font-bold text-blue-700 uppercase mb-2 text-center">Totais do Pedido (Baseado na Quantidade)</h4>
+                                        <div class="grid grid-cols-3 gap-2 text-center">
+                                            <div><label class="block text-[10px] text-blue-400 uppercase">Peso Total</label><span class="font-bold text-blue-900 text-lg" x-text="currentItem.totalWeight ? currentItem.totalWeight + ' kg' : '-'"></span></div>
+                                            <div><label class="block text-[10px] text-blue-400 uppercase">Custo Total</label><span class="font-bold text-blue-900 text-lg" x-text="formatMoney(currentItem.totalCost)"></span></div>
+                                            <div><label class="block text-[10px] text-blue-400 uppercase">Lucro Total</label><span class="font-bold text-green-600 text-lg" x-text="formatMoney(currentItem.totalProfit)"></span></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </template>
 
@@ -1314,8 +1481,7 @@
             </div>
         </div>
     </div>
-
-    <!-- Scripts -->
+  <!-- Scripts -->
     <script type="module">
         import Alpine from 'https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/module.esm.js';
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -1323,12 +1489,12 @@
         import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const customFirebaseConfig = {
-            apiKey: "AIzaSyBh4O0---MzHE_F8AjeB3fVk3DxOGVHhdw",
-            authDomain: "calhas-norte-b7c06.firebaseapp.com",
-            projectId: "calhas-norte-b7c06",
-            storageBucket: "calhas-norte-b7c06.firebasestorage.app",
-            messagingSenderId: "938655639840",
-            appId: "1:938655639840:web:e429bcb73124c4b5164f45"
+            apiKey: "AIzaSyCUxljZq9E_RaB8m2rQUKPO5Y6huff9Bwk",
+            authDomain: "calhas-norte.firebaseapp.com",
+            projectId: "calhas-norte",
+            storageBucket: "calhas-norte.firebasestorage.app",
+            messagingSenderId: "919412431262",
+            appId: "1:919412431262:web:cff37bcc0c08f765aade8f"
         };
 
         const isCanvasEnv = typeof __firebase_config !== 'undefined';
@@ -1352,6 +1518,7 @@
             if(type === 'payable') return `${root}/financeiro/contas`;
             if(type === 'cost') return `${root}/financeiro/custos_obra`;
             if(type === 'client') return `${root}/geral/clientes`; 
+            if(type === 'supplier') return `${root}/geral/fornecedores`; 
             if(type === 'product') return `${root}/geral/produtos`; 
             if(type === 'tax') return `${root}/geral/impostos`; 
             return `${root}/geral/itens`;
@@ -1390,6 +1557,8 @@
             // Modal Logic
             linkToExisting: false,
             selectedParentId: '',
+            selectedClientId: '', // ID do cliente selecionado no dropdown
+            saveAsNewClient: false, // Checkbox para salvar novo cliente
             hasLabor: false, 
             coursesDef: COURSES_DEF,
             
@@ -1405,6 +1574,7 @@
             payables: [],
             projectCosts: [],
             clients: [],
+            suppliers: [],
             products_catalog: [],
             taxes: [],
             
@@ -1458,7 +1628,7 @@
                 return items.sort((a, b) => (b.customId || 0) - (a.customId || 0));
             },
 
-            // --- NOVOS COMPUTEDS DE FILTRO E ORDENAÇÃO ---
+            // --- COMPUTEDS DE FILTRO E ORDENAÇÃO ---
             get sortedFilteredClients() {
                 let items = this.clients;
                 if(this.filterGeneral) {
@@ -1502,6 +1672,19 @@
                 }
                 return items;
             },
+            
+            get sortedFilteredSuppliers() {
+                let items = this.suppliers;
+                if(this.filterGeneral) {
+                    const q = this.filterGeneral.toLowerCase();
+                    items = items.filter(s => 
+                        (s.companyName && s.companyName.toLowerCase().includes(q)) || 
+                        (s.legalName && s.legalName.toLowerCase().includes(q)) || 
+                        (s.document && s.document.includes(q))
+                    );
+                }
+                return items.sort((a,b) => (a.companyName || '').localeCompare(b.companyName || ''));
+            },
 
             get nextClientCode() {
                 if (this.clients.length === 0) return 1;
@@ -1534,6 +1717,36 @@
                 if(this.costChecks.tax) total += parseFloat(c.tax || 0);
                 
                 return total;
+            },
+            
+            // --- ATUALIZADO: Cálculo de Materiais com Totais ---
+            calculateMaterial() {
+                if (this.modalType === 'material') {
+                    const l = parseFloat(this.currentItem.length) || 0;
+                    const w = parseFloat(this.currentItem.width) || 0;
+                    const thick = parseFloat(this.currentItem.thickness) || 0;
+                    const coef = parseFloat(this.currentItem.coefficient) || 0;
+                    const priceKg = parseFloat(this.currentItem.pricePerKg) || 0;
+                    const margin = parseFloat(this.currentItem.margin) || 0;
+                    const qty = parseFloat(this.currentItem.quantity) || 0; 
+                    
+                    // Peso Unitário = C x L x Coef x Espessura
+                    const weight = l * w * coef * thick;
+                    this.currentItem.sheetWeight = parseFloat(weight.toFixed(3));
+                    
+                    // Custo Unitário = Peso x PreçoKG
+                    const cost = weight * priceKg;
+                    this.currentItem.sheetCost = parseFloat(cost.toFixed(2));
+                    
+                    // Lucro Unitário = Custo x (Margem/100)
+                    const profit = cost * (margin / 100);
+                    this.currentItem.sheetProfit = parseFloat(profit.toFixed(2));
+
+                    // --- CÁLCULOS TOTAIS ---
+                    this.currentItem.totalWeight = parseFloat((this.currentItem.sheetWeight * qty).toFixed(3));
+                    this.currentItem.totalCost = parseFloat((this.currentItem.sheetCost * qty).toFixed(2));
+                    this.currentItem.totalProfit = parseFloat((this.currentItem.sheetProfit * qty).toFixed(2));
+                }
             },
 
             get kpis() {
@@ -1589,7 +1802,7 @@
                     'kanban': 'Quadro de Serviços', 'list': 'Lista de Serviços', 'counter': 'Venda Balcão',
                     'employees': 'Gestão de Funcionários', 'materials': 'Estoque de Matéria Prima',
                     'payables': 'Contas a Pagar', 'invoices': 'Emissão de Nota Fiscal', 'costs': 'Custos de Obra', 'profitability': 'DRE por Obra',
-                    'clients': 'Gestão de Clientes', 'products_mgr': 'Catálogo de Produtos', 'taxes': 'Tabela de Impostos'
+                    'clients': 'Gestão de Clientes', 'products_mgr': 'Catálogo de Produtos', 'taxes': 'Tabela de Impostos', 'suppliers': 'Gestão de Fornecedores'
                 };
                 return map[this.currentView];
             },
@@ -1598,7 +1811,7 @@
                 const map = {
                     'project': 'Orçamento', 'employee': 'Funcionário',
                     'material': 'Item', 'payable': 'Conta', 'cost': 'Custo de Obra',
-                    'client': 'Cliente', 'product': 'Produto', 'tax': 'Imposto'
+                    'client': 'Cliente', 'product': 'Produto', 'tax': 'Imposto', 'supplier': 'Fornecedor'
                 };
                 return map[this.modalType];
             },
@@ -1608,7 +1821,7 @@
                     'kanban': 'Novo Orçamento', 'list': 'Novo Orçamento', 'counter': 'Nova Venda',
                     'employees': 'Novo Funcionário', 'materials': 'Novo Material',
                     'payables': 'Nova Conta', 'costs': 'Novo Custo',
-                    'clients': 'Novo Cliente', 'products_mgr': 'Novo Produto', 'taxes': 'Novo Imposto'
+                    'clients': 'Novo Cliente', 'products_mgr': 'Novo Produto', 'taxes': 'Novo Imposto', 'suppliers': 'Novo Fornecedor'
                 };
                 return map[this.currentView];
             },
@@ -1683,6 +1896,28 @@
 
             // --- METHODS ---
             
+            // Função para preencher dados do cliente selecionado
+            fillClientData() {
+                if (!this.selectedClientId) return;
+                const client = this.clients.find(c => c.id === this.selectedClientId);
+                if (client) {
+                    this.currentItem.clientName = client.fantasy || client.name;
+                    this.currentItem.phone = client.cell || client.phone;
+                    
+                    // Concatenar endereço completo
+                    const parts = [
+                        client.zip ? `CEP: ${client.zip}` : '',
+                        client.address,
+                        client.number ? `nº ${client.number}` : '',
+                        client.complement,
+                        client.district,
+                        client.city ? `${client.city}/${client.state}` : ''
+                    ].filter(p => p && p.trim() !== '');
+                    
+                    this.currentItem.address = parts.join(', ');
+                }
+            },
+
             initProfitChart() {
                 if(window.profitChartInstance) window.profitChartInstance.destroy();
                 const ctx = document.getElementById('profitabilityChart');
@@ -1791,6 +2026,11 @@
                     dataToExport = this.taxes.map(t => ({
                         'AP_NCM': t.AP_NCM, 'AR_ESTADO': t.AR_ESTADO, 'AR_ICMS': t.AR_ICMS, 'AR_PIS': t.AR_PIS, 'AR_COFINS': t.AR_COFINS
                     }));
+                } else if (type === 'suppliers') {
+                    fileName = 'Fornecedores_CalhasNorte.xlsx';
+                    dataToExport = this.suppliers.map(s => ({
+                        'Empresa': s.companyName, 'CNPJ': s.document, 'Razão Social': s.legalName, 'Telefone': s.phone, 'Email': s.email, 'Contato': s.contactName
+                    }));
                 }
 
                 if(dataToExport.length === 0) {
@@ -1814,7 +2054,7 @@
                     const rows = text.split('\n').filter(row => row.trim() !== '');
                     
                     let count = 0;
-                    const colName = type === 'clients' ? 'clientes' : (type === 'products' ? 'produtos' : 'impostos');
+                    const colName = type === 'clients' ? 'clientes' : (type === 'products' ? 'produtos' : (type === 'suppliers' ? 'fornecedores' : 'impostos'));
                     const today = new Date().toISOString().split('T')[0];
                     
                     for (let i = 1; i < rows.length; i++) { // Pula header
@@ -1900,13 +2140,31 @@
                                 AR_PER_ICMS_P: parseFloat(finalCols[29]?.trim().replace(',','.')) || 0,
                                 createdAt: { seconds: Date.now() / 1000 }
                              };
+                        } else if (type === 'suppliers') {
+                            payload = {
+                                companyName: finalCols[0]?.trim() || '',
+                                document: finalCols[1]?.trim() || '',
+                                legalName: finalCols[2]?.trim() || '',
+                                zip: finalCols[3]?.trim() || '',
+                                address: finalCols[4]?.trim() || '',
+                                number: finalCols[5]?.trim() || '',
+                                complement: finalCols[6]?.trim() || '',
+                                district: finalCols[7]?.trim() || '',
+                                city: finalCols[8]?.trim() || '',
+                                phone: this.formatPhoneOnImport(finalCols[9]?.trim()),
+                                email: finalCols[10]?.trim() || '',
+                                contactName: finalCols[11]?.trim() || '',
+                                notes: finalCols[12]?.trim() || '',
+                                createdAt: { seconds: Date.now() / 1000 }
+                            };
                         }
 
                         if (db) await addDoc(collection(db, colName), payload);
                         else {
                             if(type === 'clients') this.clients.push({id: Math.random(), ...payload});
                             else if(type === 'products') this.products_catalog.push({id: Math.random(), ...payload});
-                            else this.taxes.push({id: Math.random(), ...payload});
+                            else if(type === 'taxes') this.taxes.push({id: Math.random(), ...payload});
+                            else this.suppliers.push({id: Math.random(), ...payload});
                         }
                         count++;
                     }
@@ -2061,6 +2319,7 @@
                 this.loadCollection('client', 'clients');
                 this.loadCollection('product', 'products_catalog');
                 this.loadCollection('tax', 'taxes');
+                this.loadCollection('supplier', 'suppliers');
             },
 
             loadCollection(type, arrayName) {
@@ -2071,7 +2330,8 @@
                                            type === 'cost' ? 'custos_obra' : 
                                            type === 'client' ? 'clientes' :
                                            type === 'product' ? 'produtos' : 
-                                           type === 'tax' ? 'impostos' : 'financeiro';
+                                           type === 'tax' ? 'impostos' : 
+                                           type === 'supplier' ? 'fornecedores' : 'financeiro';
                     
                     const q = query(collection(db, collectionName));
                     onSnapshot(q, (snapshot) => {
@@ -2146,7 +2406,8 @@
                                                this.modalType === 'cost' ? 'custos_obra' : 
                                                this.modalType === 'client' ? 'clientes' :
                                                this.modalType === 'product' ? 'produtos' : 
-                                               this.modalType === 'tax' ? 'impostos' : 'financeiro';
+                                               this.modalType === 'tax' ? 'impostos' : 
+                                               this.modalType === 'supplier' ? 'fornecedores' : 'financeiro';
                         
                         const colRef = collection(db, collectionName);
                         
@@ -2174,17 +2435,41 @@
                                     laborData.createdAt = new Date(); 
                                     await addDoc(colRef, laborData);
                                 }
+
+                                // Salvar Novo Cliente Automaticamente
+                                if (this.modalType === 'project' && this.saveAsNewClient && !this.selectedClientId && this.currentItem.clientName) {
+                                    const newClientPayload = {
+                                        name: this.currentItem.clientName,
+                                        address: this.currentItem.address || '',
+                                        phone: this.currentItem.phone || '',
+                                        type: 'Fisica', // Padrão
+                                        registerDate: new Date().toISOString().split('T')[0],
+                                        code: this.nextClientCode,
+                                        createdAt: { seconds: Date.now() / 1000 }
+                                    };
+                                    await addDoc(collection(db, 'clientes'), newClientPayload);
+                                }
                             }
                         }
                     } else {
                         await new Promise(r => setTimeout(r, 500));
-                        const targetArrayMap = { 'project': 'projects', 'employee': 'employees', 'material': 'materials', 'payable': 'payables', 'cost': 'projectCosts', 'client': 'clients', 'product': 'products_catalog', 'tax': 'taxes' };
+                        const targetArrayMap = { 'project': 'projects', 'employee': 'employees', 'material': 'materials', 'payable': 'payables', 'cost': 'projectCosts', 'client': 'clients', 'product': 'products_catalog', 'tax': 'taxes', 'supplier': 'suppliers' };
                         const arrName = targetArrayMap[this.modalType];
                         if (this.isEditing) {
                             const idx = this[arrName].findIndex(i => i.id === this.currentItem.id);
                             if(idx !== -1) this[arrName][idx] = { ...data, id: this.currentItem.id };
                         } else {
                             this[arrName].push({ ...data, id: Math.random(), createdAt: {seconds: Date.now()/1000} });
+                            if (this.modalType === 'project' && this.saveAsNewClient && !this.selectedClientId) {
+                                const newClientMock = {
+                                    id: Math.random(),
+                                    name: this.currentItem.clientName,
+                                    address: this.currentItem.address,
+                                    phone: this.currentItem.phone,
+                                    code: this.nextClientCode
+                                };
+                                this.clients.push(newClientMock);
+                            }
                         }
                     }
                     this.closeModal();
@@ -2207,7 +2492,8 @@
                                       this.modalType === 'cost' ? 'custos_obra' :
                                       this.modalType === 'client' ? 'clientes' :
                                       this.modalType === 'product' ? 'produtos' : 
-                                      this.modalType === 'tax' ? 'impostos' : 'financeiro';
+                                      this.modalType === 'tax' ? 'impostos' : 
+                                      this.modalType === 'supplier' ? 'fornecedores' : 'financeiro';
                         
                         if (item) {
                              if (this.currentView === 'employees') colName = 'funcionarios';
@@ -2217,11 +2503,12 @@
                              else if (this.currentView === 'clients') colName = 'clientes';
                              else if (this.currentView === 'products_mgr') colName = 'produtos';
                              else if (this.currentView === 'taxes') colName = 'impostos';
+                             else if (this.currentView === 'suppliers') colName = 'fornecedores';
                              else colName = 'orcamentos';
                         }
                         await deleteDoc(doc(db, colName, targetId));
                     } else {
-                        const targetArrayMap = { 'project': 'projects', 'employee': 'employees', 'material': 'materials', 'payable': 'payables', 'cost': 'projectCosts', 'client': 'clients', 'product': 'products_catalog', 'tax': 'taxes' };
+                        const targetArrayMap = { 'project': 'projects', 'employee': 'employees', 'material': 'materials', 'payable': 'payables', 'cost': 'projectCosts', 'client': 'clients', 'product': 'products_catalog', 'tax': 'taxes', 'supplier': 'suppliers' };
                         const arrName = targetArrayMap[this.modalType];
                         this[arrName] = this[arrName].filter(i => i.id !== targetId);
                     }
@@ -2250,6 +2537,7 @@
                 else if(this.currentView === 'clients') this.modalType = 'client';
                 else if(this.currentView === 'products_mgr') this.modalType = 'product';
                 else if(this.currentView === 'taxes') this.modalType = 'tax';
+                else if(this.currentView === 'suppliers') this.modalType = 'supplier';
                 this.showModal = true;
             },
 
@@ -2285,6 +2573,7 @@
                 else if (this.currentView === 'clients') this.modalType = 'client';
                 else if (this.currentView === 'products_mgr') this.modalType = 'product';
                 else if (this.currentView === 'taxes') this.modalType = 'tax';
+                else if (this.currentView === 'suppliers') this.modalType = 'supplier';
                 else if (this.currentView === 'costs') {
                     this.modalType = 'cost';
                     this.costChecks = {
@@ -2327,6 +2616,8 @@
                 this.currentItem = {};
                 this.linkToExisting = false;
                 this.selectedParentId = '';
+                this.selectedClientId = ''; 
+                this.saveAsNewClient = false;
                 this.hasLabor = false; 
                 this.filterId = ''; 
                 this.costChecks = { material: false, rawMaterial: false, meal: false, painting: false, operational: false, transport: false, unforeseen: false, tax: false };
@@ -2355,6 +2646,9 @@
                     this.currentItem = { registerDate: new Date().toISOString().split('T')[0], unit: 'UN' };
                 }
                 if(this.currentView === 'taxes') {
+                    this.currentItem = {};
+                }
+                if(this.currentView === 'suppliers') {
                     this.currentItem = {};
                 }
                 
@@ -2440,16 +2734,6 @@
                 if(bill.isPaid) return false;
                 const today = new Date().toISOString().split('T')[0];
                 return bill.dueDate < today;
-            },
-            
-            // --- Course Management Methods ---
-            addCourse() {
-                if(!this.currentItem.coursesList) this.currentItem.coursesList = [];
-                this.currentItem.coursesList.push({ name: '', completion: '', expiration: '' });
-            },
-            
-            removeCourse(index) {
-                this.currentItem.coursesList.splice(index, 1);
             }
         });
 
