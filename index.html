@@ -12,6 +12,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- SheetJS para Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <!-- jsPDF para geração de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     
     <script>
         tailwind.config = {
@@ -919,20 +922,21 @@
                                 </thead>
                                 <tbody class="bg-white divide-y divide-slate-200">
                                     <template x-for="bill in filteredPayables" :key="bill.id">
-                                        <tr class="hover:bg-slate-50 transition" :class="bill.isAuto ? 'bg-blue-50' : ''">
+                                        <tr class="hover:bg-slate-50 transition" :class="{'bg-blue-50': bill.isAuto, 'bg-indigo-50': bill.isAutoRecurring || bill.isRecurring}">
                                             <td class="px-4 py-4 text-center">
                                                 <input type="checkbox" :checked="bill.isPaid" @click.stop="togglePaid(bill)" class="w-5 h-5 text-brand-600 rounded focus:ring-brand-500 cursor-pointer">
                                             </td>
-                                            <td class="px-6 py-4 cursor-pointer" @click="editItem(bill)">
+                                            <td class="px-6 py-4 cursor-pointer" @click="!bill.isAutoRecurring && editItem(bill)">
                                                 <div class="font-medium text-slate-900" :class="{'line-through text-slate-400': bill.isPaid}" x-text="bill.description"></div>
                                                 <div x-show="bill.isAuto" class="text-[10px] text-blue-600 font-bold uppercase">Automático</div>
+                                                <div x-show="bill.isRecurring || bill.isAutoRecurring" class="text-[10px] text-indigo-600 font-bold uppercase flex items-center gap-1"><i data-lucide="repeat" class="w-3 h-3"></i> Recorrente</div>
                                             </td>
                                             <td class="px-6 py-4 text-sm text-slate-500" x-text="bill.category"></td>
                                             <td class="px-6 py-4 text-sm" :class="isOverdue(bill) ? 'text-red-600 font-bold' : 'text-slate-500'" x-text="formatDateRaw(bill.dueDate)"></td>
                                             <td class="px-6 py-4 text-sm font-bold text-slate-700" x-text="formatMoney(bill.amount)"></td>
                                             <td class="px-6 py-4 text-right flex justify-end gap-2">
-                                                <button @click="editItem(bill)" class="text-brand-600 hover:text-brand-900" x-show="!bill.isAuto"><i data-lucide="pencil" class="w-4 h-4"></i></button>
-                                                <button @click="deleteItem(bill)" class="text-red-500 hover:text-red-700" x-show="!bill.isAuto"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                                <button @click="editItem(bill)" class="text-brand-600 hover:text-brand-900" x-show="!bill.isAuto && !bill.isAutoRecurring"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                                <button @click="deleteItem(bill)" class="text-red-500 hover:text-red-700" x-show="!bill.isAuto && !bill.isAutoRecurring"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                                             </td>
                                         </tr>
                                     </template>
@@ -1079,8 +1083,154 @@
                                         <input type="checkbox" x-model="hasLabor" class="w-4 h-4 text-accent-600 focus:ring-accent-500">
                                         <span class="text-sm font-bold text-slate-700">Adicionar Mão de Obra (20%)?</span>
                                     </div>
+
+                                    <!-- SEÇÃO DE PRODUTOS DO ORÇAMENTO -->
                                     <div class="sm:col-span-2 border-t border-slate-100 pt-4 mt-2">
-                                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-2">Datas de Acompanhamento</h4>
+                                        <div class="flex justify-between items-center mb-3">
+                                            <h4 class="text-xs font-bold text-slate-400 uppercase">Produtos do Orçamento</h4>
+                                            <button type="button" @click="addProductLine()" class="text-xs bg-brand-100 text-brand-700 px-2 py-1 rounded hover:bg-brand-200 flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> Adicionar Produto</button>
+                                        </div>
+
+                                        <div class="space-y-2" x-show="currentItem.productLines && currentItem.productLines.length > 0">
+                                            <template x-for="(line, idx) in currentItem.productLines" :key="idx">
+                                                <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 relative group hover:border-slate-300 transition">
+                                                    <!-- Linha 1: Produto + Excluir -->
+                                                    <div class="flex items-start gap-2 mb-2">
+                                                        <div class="flex-1 relative">
+                                                            <label class="block text-[10px] text-slate-400 mb-0.5">Produto (busca por cód ou descrição)</label>
+                                                            <input type="text" x-model="line.searchQuery" @input="line.searchOpen = true" @focus="line.searchOpen = true" @click.away="setTimeout(() => line.searchOpen = false, 200)" placeholder="Buscar produto..." class="w-full px-2 py-1.5 border rounded text-xs">
+                                                            <div x-show="line.searchOpen && line.searchQuery && line.searchQuery.length >= 1" class="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded shadow-lg max-h-32 overflow-y-auto">
+                                                                <template x-for="prod in products_catalog.filter(p => { const q = (line.searchQuery || '').toLowerCase(); return (p.description && p.description.toLowerCase().includes(q)) || (p.code && p.code.toLowerCase().includes(q)) || (p.idCode && p.idCode.toLowerCase().includes(q)); }).slice(0, 8)" :key="prod.id">
+                                                                    <button type="button" @click="selectProductForLine(idx, prod)" class="w-full text-left px-2 py-1.5 hover:bg-blue-50 border-b border-slate-100 last:border-0 text-xs">
+                                                                        <span class="font-bold text-slate-500" x-text="prod.code"></span>
+                                                                        <span class="font-medium ml-1" x-text="prod.description"></span>
+                                                                        <span class="text-slate-400 ml-1" x-text="formatMoney(prod.price)"></span>
+                                                                    </button>
+                                                                </template>
+                                                            </div>
+                                                            <div x-show="line.productName && !line.searchOpen" class="text-[10px] text-green-600 mt-0.5 truncate" x-text="line.productName"></div>
+                                                        </div>
+                                                        <button type="button" @click="currentItem.productLines.splice(idx, 1)" class="mt-4 inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition flex-shrink-0" title="Excluir produto">
+                                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Excluir
+                                                        </button>
+                                                    </div>
+                                                    <!-- Linha 2: Qtd, Vlr Unit, Desc, Imposto, Total -->
+                                                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-2">
+                                                        <div>
+                                                            <label class="block text-[10px] text-slate-400 mb-0.5">Quantidade</label>
+                                                            <input type="number" min="1" x-model="line.qty" @input="calcProductLine(idx)" class="w-full px-2 py-1.5 border rounded text-xs text-center">
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-[10px] text-slate-400 mb-0.5">Vlr Unitário</label>
+                                                            <input type="number" step="0.01" x-model="line.unitPrice" @input="calcProductLine(idx)" class="w-full px-2 py-1.5 border rounded text-xs text-right">
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-[10px] text-slate-400 mb-0.5">Desconto %</label>
+                                                            <input type="number" step="0.01" min="0" max="100" x-model="line.discount" @input="calcProductLine(idx)" class="w-full px-2 py-1.5 border rounded text-xs text-right" placeholder="0">
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-[10px] text-slate-400 mb-0.5">Imposto</label>
+                                                            <input type="text" x-model="line.taxCode" class="w-full px-2 py-1.5 border rounded text-xs text-right bg-slate-100" readonly placeholder="-">
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-[10px] text-slate-400 mb-0.5">Total</label>
+                                                            <div class="px-2 py-1.5 text-xs text-right font-bold text-brand-700 bg-white border rounded" x-text="formatMoney(line.total || 0)"></div>
+                                                        </div>
+                                                    </div>
+                                                    <!-- Linha 3: CFOP e CSOSN -->
+                                                    <div class="grid grid-cols-2 gap-2">
+                                                        <div>
+                                                            <label class="block text-[10px] text-slate-400 mb-0.5">CFOP</label>
+                                                            <input type="text" x-model="line.cfop" class="w-full px-2 py-1.5 border rounded text-xs" placeholder="Ex: 5102">
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-[10px] text-slate-400 mb-0.5">CSOSN</label>
+                                                            <input type="text" x-model="line.csosn" class="w-full px-2 py-1.5 border rounded text-xs" placeholder="Ex: 102">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            <!-- Totalizador -->
+                                            <div class="flex justify-end items-center gap-4 pt-2 px-2 border-t border-slate-200 mt-2">
+                                                <span class="text-xs font-bold text-slate-500 uppercase">Total Produtos:</span>
+                                                <span class="text-sm font-bold text-brand-700" x-text="formatMoney(productLinesTotal)"></span>
+                                            </div>
+                                        </div>
+                                        <div x-show="!currentItem.productLines || currentItem.productLines.length === 0" class="text-center text-xs text-slate-400 py-3 bg-slate-50 rounded border border-dashed border-slate-200">
+                                            Nenhum produto adicionado. Clique em "Adicionar Produto" acima.
+                                        </div>
+                                    </div>
+
+                                    <!-- CONDIÇÕES DE PAGAMENTO -->
+                                    <div class="sm:col-span-2 border-t border-slate-100 pt-4 mt-2">
+                                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-3">Condições de Pagamento</h4>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Forma de Pagamento</label>
+                                                <select x-model="currentItem.paymentMethod" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                                    <option value="">Selecione...</option>
+                                                    <option value="Dinheiro">Dinheiro</option>
+                                                    <option value="PIX">PIX</option>
+                                                    <option value="Cartão Débito">Cartão de Débito</option>
+                                                    <option value="Cartão Crédito">Cartão de Crédito</option>
+                                                    <option value="Boleto">Boleto Bancário</option>
+                                                    <option value="Transferência">Transferência Bancária</option>
+                                                    <option value="Cheque">Cheque</option>
+                                                    <option value="Outros">Outros</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Parcelamento</label>
+                                                <select x-model="currentItem.installments" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                                    <option value="À Vista">À Vista</option>
+                                                    <option value="2x">2x</option>
+                                                    <option value="3x">3x</option>
+                                                    <option value="4x">4x</option>
+                                                    <option value="5x">5x</option>
+                                                    <option value="6x">6x</option>
+                                                    <option value="7x">7x</option>
+                                                    <option value="8x">8x</option>
+                                                    <option value="9x">9x</option>
+                                                    <option value="10x">10x</option>
+                                                    <option value="12x">12x</option>
+                                                    <option value="Personalizado">Personalizado</option>
+                                                </select>
+                                            </div>
+                                            <div x-show="currentItem.installments === 'Personalizado'">
+                                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nº de Parcelas</label>
+                                                <input type="number" min="1" x-model="currentItem.customInstallments" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Ex: 15">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Entrada (R$)</label>
+                                                <input type="number" step="0.01" x-model="currentItem.downPayment" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="0,00">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Prazo (dias)</label>
+                                                <select x-model="currentItem.paymentTerm" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                                    <option value="">Selecione...</option>
+                                                    <option value="0">À Vista (0 dias)</option>
+                                                    <option value="7">7 dias</option>
+                                                    <option value="14">14 dias</option>
+                                                    <option value="21">21 dias</option>
+                                                    <option value="28">28 dias</option>
+                                                    <option value="30">30 dias</option>
+                                                    <option value="30/60">30/60 dias</option>
+                                                    <option value="30/60/90">30/60/90 dias</option>
+                                                    <option value="Outro">Outro</option>
+                                                </select>
+                                            </div>
+                                            <div x-show="currentItem.paymentTerm === 'Outro'">
+                                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Prazo Personalizado</label>
+                                                <input type="text" x-model="currentItem.customPaymentTerm" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Ex: 15/45/75 dias">
+                                            </div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Observações de Pagamento</label>
+                                            <textarea x-model="currentItem.paymentNotes" rows="2" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Ex: Entrada de 50% na aprovação, restante na conclusão..."></textarea>
+                                        </div>
+                                    </div>
+
+                                    <div class="sm:col-span-2 border-t border-slate-100 pt-4 mt-2">
                                         <div class="grid grid-cols-2 gap-4">
                                             <div x-show="currentView !== 'counter'">
                                                 <label class="block text-xs text-slate-500 mb-1">Data Orçamento</label>
@@ -1489,8 +1639,16 @@
                                     <div class="sm:col-span-2"><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Descrição</label><input type="text" x-model="currentItem.description" class="w-full px-3 py-2 border rounded-lg" required :disabled="currentItem.isAuto"></div>
                                     <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Categoria</label><select x-model="currentItem.category" class="w-full px-3 py-2 border rounded-lg" :disabled="currentItem.isAuto"><option value="Fixa">Despesa Fixa</option><option value="Salario">Salários</option><option value="Fornecedor">Fornecedor</option><option value="Extra">Extra</option></select></div>
                                     <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Valor</label><input type="number" step="0.01" x-model="currentItem.amount" class="w-full px-3 py-2 border rounded-lg" :disabled="currentItem.isAuto"></div>
-                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Data de Vencimento</label><input type="date" x-model="currentItem.dueDate" class="w-full px-3 py-2 border rounded-lg" required></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Dia de Vencimento</label><input type="date" x-model="currentItem.dueDate" class="w-full px-3 py-2 border rounded-lg" required></div>
                                     <div class="sm:col-span-2 flex items-center gap-2"><input type="checkbox" x-model="currentItem.isPaid" class="w-4 h-4 text-brand-600 rounded"><label class="text-sm text-slate-700">Conta já está paga</label></div>
+                                    <!-- Conta Recorrente -->
+                                    <div class="sm:col-span-2 p-3 rounded-lg border border-indigo-200 bg-indigo-50" x-show="!currentItem.isAuto">
+                                        <div class="flex items-center gap-2">
+                                            <input type="checkbox" x-model="currentItem.isRecurring" class="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500">
+                                            <label class="text-sm font-bold text-indigo-800">Conta recorrente (repete todo mês)</label>
+                                        </div>
+                                        <p class="text-[10px] text-indigo-500 mt-1 pl-6">A conta aparecerá automaticamente todos os meses até ser desmarcada.</p>
+                                    </div>
                                 </div>
                             </template>
 
@@ -1501,6 +1659,9 @@
                         <button @click="saveItem" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-brand-600 text-base font-medium text-white hover:bg-brand-700 sm:ml-3 sm:w-auto sm:text-sm">
                             <span x-show="!isSaving">Salvar</span>
                             <span x-show="isSaving" class="animate-spin"><i data-lucide="loader-2" class="w-4 h-4"></i></span>
+                        </button>
+                        <button x-show="modalType === 'project'" @click="generatePDF()" type="button" class="w-full inline-flex justify-center items-center gap-1.5 rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 sm:ml-3 sm:w-auto sm:text-sm">
+                            <i data-lucide="file-down" class="w-4 h-4"></i> Salvar PDF
                         </button>
                         <button x-show="isEditing && !currentItem.isAuto" @click="deleteItem()" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-red-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-red-700 hover:bg-red-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Excluir</button>
                         <button @click="closeModal()" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-slate-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-slate-700 hover:bg-slate-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Cancelar</button>
@@ -1761,6 +1922,42 @@
                 
                 return total;
             },
+
+            get productLinesTotal() {
+                if (!this.currentItem.productLines) return 0;
+                return this.currentItem.productLines.reduce((acc, line) => acc + (parseFloat(line.total) || 0), 0);
+            },
+
+            addProductLine() {
+                if (!this.currentItem.productLines) this.currentItem.productLines = [];
+                this.currentItem.productLines.push({
+                    productId: '', productName: '', productCode: '',
+                    searchQuery: '', searchOpen: false,
+                    qty: 1, unitPrice: 0, discount: 0, taxCode: '', total: 0,
+                    cfop: '', csosn: ''
+                });
+            },
+
+            selectProductForLine(idx, prod) {
+                const line = this.currentItem.productLines[idx];
+                line.productId = prod.id;
+                line.productName = prod.description;
+                line.productCode = prod.code;
+                line.unitPrice = parseFloat(prod.price) || 0;
+                line.taxCode = prod.taxCode || prod.ncm || '';
+                line.searchQuery = prod.description;
+                line.searchOpen = false;
+                this.calcProductLine(idx);
+            },
+
+            calcProductLine(idx) {
+                const line = this.currentItem.productLines[idx];
+                const qty = parseFloat(line.qty) || 0;
+                const unitPrice = parseFloat(line.unitPrice) || 0;
+                const discount = parseFloat(line.discount) || 0;
+                const subtotal = qty * unitPrice;
+                line.total = subtotal - (subtotal * (discount / 100));
+            },
             
             // --- ATUALIZADO: Cálculo de Materiais com Totais ---
             calculateMaterial() {
@@ -1806,6 +2003,26 @@
             
             get filteredPayables() {
                 let manualPayables = this.payables.filter(p => p.dueDate && p.dueDate.startsWith(this.selectedMonth));
+                
+                // Contas recorrentes: gerar automaticamente para o mês selecionado
+                const recurringBills = this.payables.filter(p => p.isRecurring && !p.isAuto);
+                const autoRecurring = recurringBills.map(bill => {
+                    // Verificar se já existe uma conta manual para este mês com mesma descrição
+                    const alreadyExists = manualPayables.find(p => p.id === bill.id || (p.description === bill.description && p.amount == bill.amount && !p.isRecurring));
+                    if (alreadyExists) return null;
+                    // Se a conta recorrente já pertence a este mês, já está no manualPayables
+                    if (bill.dueDate && bill.dueDate.startsWith(this.selectedMonth)) return null;
+                    // Gerar a conta para o mês selecionado
+                    const dayPart = bill.dueDate ? bill.dueDate.split('-')[2] : '10';
+                    return {
+                        ...bill,
+                        id: 'recur_' + bill.id + '_' + this.selectedMonth,
+                        isAutoRecurring: true,
+                        dueDate: this.selectedMonth + '-' + dayPart,
+                        isPaid: false
+                    };
+                }).filter(i => i !== null);
+
                 const activeEmployees = this.employees.filter(e => e.isActive && e.salary > 0);
                 const automaticSalaries = activeEmployees.map(emp => {
                     const alreadyExists = manualPayables.find(p => p.category === 'Salario' && p.description.includes(emp.name));
@@ -1821,7 +2038,7 @@
                         employeeId: emp.id
                     };
                 }).filter(i => i !== null);
-                return [...manualPayables, ...automaticSalaries].sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+                return [...manualPayables, ...autoRecurring, ...automaticSalaries].sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
             },
             
             get uniqueProjects() {
@@ -1997,6 +2214,292 @@
                     this.cepError = 'Erro ao buscar CEP. Verifique sua conexão.';
                     console.error('CEP fetch error:', e);
                 } finally { this.cepLoading = false; }
+            },
+
+            async generatePDF() {
+                const item = this.currentItem;
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                const pageW = doc.internal.pageSize.getWidth();
+                const margin = 15;
+                const contentW = pageW - margin * 2;
+                let y = 15;
+
+                // Cores
+                const brandColor = [2, 132, 199]; // brand-600
+                const darkColor = [15, 23, 42]; // slate-900
+                const grayColor = [100, 116, 139]; // slate-500
+                const lightBg = [248, 250, 252]; // slate-50
+
+                // --- HEADER COM LOGO ---
+                try {
+                    const logoUrl = 'https://res.cloudinary.com/ddkundhsl/image/upload/v1767468666/Logotipo_-_Pratta_Tech_2_hkdw3e.png';
+                    const imgData = await this.loadImageAsBase64(logoUrl);
+                    if (imgData) {
+                        doc.addImage(imgData, 'PNG', margin, y, 35, 35);
+                    }
+                } catch(e) { console.log('Logo load failed, continuing without it'); }
+
+                // Título ao lado do logo
+                doc.setFontSize(20);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...brandColor);
+                doc.text('CALHAS NORTE', margin + 42, y + 12);
+                doc.setFontSize(9);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(...grayColor);
+                doc.text('Sistema de Gestão de Obras', margin + 42, y + 19);
+
+                // Tipo do documento
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...darkColor);
+                const docType = item.category === 'counter' ? 'VENDA BALCÃO' : 'ORÇAMENTO / PEDIDO';
+                doc.text(docType, margin + 42, y + 30);
+
+                // ID e Data
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...brandColor);
+                doc.text('#' + (item.customId || '---'), pageW - margin, y + 12, { align: 'right' });
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(...grayColor);
+                doc.text('Emitido em: ' + new Date().toLocaleDateString('pt-BR'), pageW - margin, y + 18, { align: 'right' });
+
+                y += 42;
+
+                // Linha separadora
+                doc.setDrawColor(...brandColor);
+                doc.setLineWidth(0.8);
+                doc.line(margin, y, pageW - margin, y);
+                y += 8;
+
+                // --- DADOS DO CLIENTE ---
+                doc.setFillColor(...lightBg);
+                doc.roundedRect(margin, y, contentW, 30, 2, 2, 'F');
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...brandColor);
+                doc.text('DADOS DO CLIENTE', margin + 4, y + 5);
+
+                doc.setFontSize(9);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...darkColor);
+                doc.text(item.clientName || 'Não informado', margin + 4, y + 12);
+
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(...grayColor);
+                doc.text('Endereço: ' + (item.address || 'Não informado'), margin + 4, y + 18);
+                doc.text('Telefone: ' + (item.phone || 'Não informado'), margin + 4, y + 24);
+
+                // Status e Serviço à direita
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...darkColor);
+                doc.text('Serviço: ' + (item.serviceType || '-'), pageW - margin - 4, y + 12, { align: 'right' });
+                doc.text('Status: ' + this.getStatusLabel(item.status), pageW - margin - 4, y + 18, { align: 'right' });
+
+                y += 36;
+
+                // --- VALORES ---
+                doc.setFillColor(...brandColor);
+                doc.roundedRect(margin, y, contentW, 22, 2, 2, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'normal');
+
+                const valCols = contentW / 3;
+                if (item.category !== 'counter') {
+                    doc.text('VALOR CONTRATO', margin + 4, y + 6);
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(this.formatMoney(item.contractValue), margin + 4, y + 15);
+                }
+
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'normal');
+                doc.text('VALOR SERVIÇO', margin + valCols + 4, y + 6);
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.text(this.formatMoney(item.serviceValue), margin + valCols + 4, y + 15);
+
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'normal');
+                doc.text('TOTAL PRODUTOS', margin + valCols * 2 + 4, y + 6);
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                const prodTotal = (item.productLines || []).reduce((a, l) => a + (parseFloat(l.total) || 0), 0);
+                doc.text(this.formatMoney(prodTotal), margin + valCols * 2 + 4, y + 15);
+
+                y += 28;
+
+                // --- DESCRIÇÃO ---
+                if (item.description) {
+                    doc.setFontSize(8);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(...brandColor);
+                    doc.text('DESCRIÇÃO', margin, y);
+                    y += 5;
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(...darkColor);
+                    doc.setFontSize(9);
+                    const descLines = doc.splitTextToSize(item.description, contentW);
+                    doc.text(descLines, margin, y);
+                    y += descLines.length * 4.5 + 4;
+                }
+
+                // --- TABELA DE PRODUTOS ---
+                if (item.productLines && item.productLines.length > 0) {
+                    doc.setFontSize(8);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(...brandColor);
+                    doc.text('PRODUTOS DO ORÇAMENTO', margin, y);
+                    y += 3;
+
+                    const tableData = item.productLines.map((line, i) => [
+                        (i + 1).toString(),
+                        line.productCode || '-',
+                        line.productName || line.searchQuery || '-',
+                        (line.qty || 0).toString(),
+                        this.formatMoney(line.unitPrice),
+                        (line.discount || 0) + '%',
+                        line.cfop || '-',
+                        line.csosn || '-',
+                        line.taxCode || '-',
+                        this.formatMoney(line.total)
+                    ]);
+
+                    doc.autoTable({
+                        startY: y,
+                        margin: { left: margin, right: margin },
+                        head: [['#', 'Cód', 'Descrição', 'Qtd', 'Vlr Unit.', 'Desc.', 'CFOP', 'CSOSN', 'Imposto', 'Total']],
+                        body: tableData,
+                        foot: [['', '', '', '', '', '', '', '', 'TOTAL:', this.formatMoney(prodTotal)]],
+                        theme: 'grid',
+                        headStyles: { fillColor: brandColor, textColor: 255, fontSize: 7, fontStyle: 'bold', halign: 'center' },
+                        bodyStyles: { fontSize: 7, textColor: darkColor },
+                        footStyles: { fillColor: lightBg, textColor: darkColor, fontSize: 8, fontStyle: 'bold' },
+                        columnStyles: {
+                            0: { halign: 'center', cellWidth: 8 },
+                            1: { cellWidth: 16 },
+                            2: { cellWidth: 'auto' },
+                            3: { halign: 'center', cellWidth: 12 },
+                            4: { halign: 'right', cellWidth: 20 },
+                            5: { halign: 'center', cellWidth: 14 },
+                            6: { halign: 'center', cellWidth: 16 },
+                            7: { halign: 'center', cellWidth: 14 },
+                            8: { halign: 'center', cellWidth: 16 },
+                            9: { halign: 'right', cellWidth: 22 }
+                        },
+                        alternateRowStyles: { fillColor: [248, 250, 252] }
+                    });
+                    y = doc.lastAutoTable.finalY + 6;
+                }
+
+                // --- CONDIÇÕES DE PAGAMENTO ---
+                if (item.paymentMethod || item.installments || item.paymentTerm) {
+                    // Verificar se precisa nova página
+                    if (y > 240) { doc.addPage(); y = 20; }
+
+                    doc.setFillColor(...lightBg);
+                    doc.roundedRect(margin, y, contentW, 32, 2, 2, 'F');
+                    doc.setFontSize(8);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(...brandColor);
+                    doc.text('CONDIÇÕES DE PAGAMENTO', margin + 4, y + 5);
+
+                    doc.setFontSize(8);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(...darkColor);
+                    let payY = y + 12;
+                    const halfW = contentW / 2;
+
+                    if (item.paymentMethod) { doc.text('Forma: ' + item.paymentMethod, margin + 4, payY); }
+                    if (item.installments) { doc.text('Parcelamento: ' + (item.installments === 'Personalizado' ? (item.customInstallments || '') + 'x' : item.installments), margin + halfW, payY); }
+                    payY += 6;
+                    if (item.downPayment) { doc.text('Entrada: ' + this.formatMoney(item.downPayment), margin + 4, payY); }
+                    if (item.paymentTerm) { doc.text('Prazo: ' + (item.paymentTerm === 'Outro' ? (item.customPaymentTerm || '') : item.paymentTerm + ' dias'), margin + halfW, payY); }
+                    payY += 6;
+                    if (item.paymentNotes) {
+                        doc.setFontSize(7);
+                        doc.setTextColor(...grayColor);
+                        const noteLines = doc.splitTextToSize('Obs: ' + item.paymentNotes, contentW - 8);
+                        doc.text(noteLines, margin + 4, payY);
+                    }
+                    y += 38;
+                }
+
+                // --- DATAS DE ACOMPANHAMENTO ---
+                if (y > 250) { doc.addPage(); y = 20; }
+
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...brandColor);
+                doc.text('DATAS DE ACOMPANHAMENTO', margin, y);
+                y += 5;
+
+                doc.autoTable({
+                    startY: y,
+                    margin: { left: margin, right: margin },
+                    head: [['Orçamento', 'Contrato', 'Faturamento', 'Recebimento']],
+                    body: [[
+                        this.formatDateRaw(item.budgetDate) || '-',
+                        this.formatDateRaw(item.contractDate) || '-',
+                        this.formatDateRaw(item.billingDate) || '-',
+                        this.formatDateRaw(item.revenueDate) || '-'
+                    ]],
+                    theme: 'grid',
+                    headStyles: { fillColor: [100, 116, 139], textColor: 255, fontSize: 7, fontStyle: 'bold', halign: 'center' },
+                    bodyStyles: { fontSize: 8, halign: 'center', textColor: darkColor },
+                });
+                y = doc.lastAutoTable.finalY + 10;
+
+                // --- RODAPÉ ---
+                const footerY = doc.internal.pageSize.getHeight() - 15;
+                doc.setDrawColor(200, 200, 200);
+                doc.setLineWidth(0.3);
+                doc.line(margin, footerY - 4, pageW - margin, footerY - 4);
+                doc.setFontSize(7);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(...grayColor);
+                doc.text('Calhas Norte - Sistema de Gestão de Obras', margin, footerY);
+                doc.text('Documento gerado em ' + new Date().toLocaleString('pt-BR'), pageW - margin, footerY, { align: 'right' });
+
+                // Assinaturas
+                if (y < footerY - 35) {
+                    const sigY = footerY - 25;
+                    doc.setDrawColor(...grayColor);
+                    doc.setLineWidth(0.3);
+                    doc.line(margin, sigY, margin + 65, sigY);
+                    doc.line(pageW - margin - 65, sigY, pageW - margin, sigY);
+                    doc.setFontSize(7);
+                    doc.setTextColor(...grayColor);
+                    doc.text('Calhas Norte', margin + 32.5, sigY + 5, { align: 'center' });
+                    doc.text('Cliente', pageW - margin - 32.5, sigY + 5, { align: 'center' });
+                }
+
+                // Salvar
+                const fileName = `Orcamento_${item.customId || 'novo'}_${(item.clientName || 'cliente').replace(/\s+/g, '_')}.pdf`;
+                doc.save(fileName);
+            },
+
+            async loadImageAsBase64(url) {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.crossOrigin = 'Anonymous';
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        resolve(canvas.toDataURL('image/png'));
+                    };
+                    img.onerror = () => resolve(null);
+                    img.src = url;
+                });
             },
 
             initProfitChart() {
@@ -2898,6 +3401,7 @@
                 else {
                     this.modalType = 'project';
                     if (item.createdAt) this.currentItem.date = this.formatDateRawISO(item.createdAt);
+                    if (!this.currentItem.productLines) this.currentItem.productLines = [];
                 }
                 this.showModal = true;
             },
@@ -2923,7 +3427,7 @@
                 
                 if(this.currentView === 'kanban' || this.currentView === 'list' || this.currentView === 'counter') {
                     const today = new Date().toISOString().split('T')[0];
-                    this.currentItem = { serviceType: 'Calhas', status: 'lead', date: today, budgetDate: today };
+                    this.currentItem = { serviceType: 'Calhas', status: 'lead', date: today, budgetDate: today, productLines: [] };
                 }
                 if(this.currentView === 'materials') this.currentItem = { unit: 'un', type: 'Chapas', status: 'Em Estoque', orderDate: new Date().toISOString().split('T')[0] };
                 if(this.currentView === 'employees') {
@@ -2937,7 +3441,7 @@
                         ]
                     };
                 }
-                if(this.currentView === 'payables') this.currentItem = { category: 'Fixa', isPaid: false, dueDate: this.selectedMonth + '-10', repeatCount: 1, isAuto: false };
+                if(this.currentView === 'payables') this.currentItem = { category: 'Fixa', isPaid: false, dueDate: this.selectedMonth + '-10', repeatCount: 1, isAuto: false, isRecurring: false };
                 if(this.currentView === 'clients') {
                     this.currentItem = { type: 'Fisica', registerDate: new Date().toISOString().split('T')[0], code: this.nextClientCode };
                 }
