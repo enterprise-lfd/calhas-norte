@@ -2217,289 +2217,285 @@
             },
 
             async generatePDF() {
-                const item = this.currentItem;
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF('p', 'mm', 'a4');
-                const pageW = doc.internal.pageSize.getWidth();
-                const margin = 15;
-                const contentW = pageW - margin * 2;
-                let y = 15;
-
-                // Cores
-                const brandColor = [2, 132, 199]; // brand-600
-                const darkColor = [15, 23, 42]; // slate-900
-                const grayColor = [100, 116, 139]; // slate-500
-                const lightBg = [248, 250, 252]; // slate-50
-
-                // --- HEADER COM LOGO ---
                 try {
-                    const logoUrl = 'https://res.cloudinary.com/ddkundhsl/image/upload/v1767468666/Logotipo_-_Pratta_Tech_2_hkdw3e.png';
-                    const imgData = await this.loadImageAsBase64(logoUrl);
-                    if (imgData) {
-                        doc.addImage(imgData, 'PNG', margin, y, 35, 35);
+                    const item = this.currentItem;
+                    if (!window.jspdf) { alert('Biblioteca jsPDF não carregada. Recarregue a página.'); return; }
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF('p', 'mm', 'a4');
+                    const pageW = doc.internal.pageSize.getWidth();
+                    const margin = 15;
+                    const contentW = pageW - margin * 2;
+                    let y = 15;
+
+                    const brandColor = [2, 132, 199];
+                    const darkColor = [15, 23, 42];
+                    const grayColor = [100, 116, 139];
+                    const lightBg = [248, 250, 252];
+
+                    // --- HEADER COM LOGO ---
+                    let logoLoaded = false;
+                    try {
+                        const logoUrl = 'https://res.cloudinary.com/ddkundhsl/image/upload/v1767468666/Logotipo_-_Pratta_Tech_2_hkdw3e.png';
+                        const imgData = await new Promise((resolve) => {
+                            const img = new Image();
+                            img.crossOrigin = 'anonymous';
+                            img.onload = () => {
+                                try {
+                                    const c = document.createElement('canvas');
+                                    c.width = img.naturalWidth;
+                                    c.height = img.naturalHeight;
+                                    c.getContext('2d').drawImage(img, 0, 0);
+                                    resolve(c.toDataURL('image/png'));
+                                } catch(e) { resolve(null); }
+                            };
+                            img.onerror = () => resolve(null);
+                            setTimeout(() => resolve(null), 3000);
+                            img.src = logoUrl;
+                        });
+                        if (imgData) {
+                            doc.addImage(imgData, 'PNG', margin, y, 35, 35);
+                            logoLoaded = true;
+                        }
+                    } catch(e) { /* logo falhou, continua sem */ }
+
+                    const textX = logoLoaded ? margin + 42 : margin;
+
+                    doc.setFontSize(20);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(...brandColor);
+                    doc.text('CALHAS NORTE', textX, y + 12);
+                    doc.setFontSize(9);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(...grayColor);
+                    doc.text('Sistema de Gestão de Obras', textX, y + 19);
+
+                    doc.setFontSize(14);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(...darkColor);
+                    const docType = item.category === 'counter' ? 'VENDA BALCÃO' : 'ORÇAMENTO / PEDIDO';
+                    doc.text(docType, textX, y + 30);
+
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(...brandColor);
+                    doc.text('#' + (item.customId || '---'), pageW - margin, y + 12, { align: 'right' });
+                    doc.setFontSize(8);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(...grayColor);
+                    doc.text('Emitido em: ' + new Date().toLocaleDateString('pt-BR'), pageW - margin, y + 18, { align: 'right' });
+
+                    y += 42;
+                    doc.setDrawColor(...brandColor);
+                    doc.setLineWidth(0.8);
+                    doc.line(margin, y, pageW - margin, y);
+                    y += 8;
+
+                    // --- DADOS DO CLIENTE ---
+                    doc.setFillColor(...lightBg);
+                    doc.roundedRect(margin, y, contentW, 30, 2, 2, 'F');
+                    doc.setFontSize(8);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(...brandColor);
+                    doc.text('DADOS DO CLIENTE', margin + 4, y + 5);
+
+                    doc.setFontSize(9);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(...darkColor);
+                    doc.text(item.clientName || 'Não informado', margin + 4, y + 12);
+
+                    doc.setFontSize(8);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(...grayColor);
+                    doc.text('Endereço: ' + (item.address || 'Não informado'), margin + 4, y + 18);
+                    doc.text('Telefone: ' + (item.phone || 'Não informado'), margin + 4, y + 24);
+
+                    doc.setFontSize(8);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(...darkColor);
+                    doc.text('Serviço: ' + (item.serviceType || '-'), pageW - margin - 4, y + 12, { align: 'right' });
+                    doc.text('Status: ' + (this.getStatusLabel ? this.getStatusLabel(item.status) : (item.status || '-')), pageW - margin - 4, y + 18, { align: 'right' });
+
+                    y += 36;
+
+                    // --- VALORES ---
+                    doc.setFillColor(...brandColor);
+                    doc.roundedRect(margin, y, contentW, 22, 2, 2, 'F');
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(8);
+                    doc.setFont('helvetica', 'normal');
+
+                    const valCols = contentW / 3;
+                    if (item.category !== 'counter') {
+                        doc.text('VALOR CONTRATO', margin + 4, y + 6);
+                        doc.setFontSize(12);
+                        doc.setFont('helvetica', 'bold');
+                        doc.text(this.formatMoney(item.contractValue), margin + 4, y + 15);
                     }
-                } catch(e) { console.log('Logo load failed, continuing without it'); }
 
-                // Título ao lado do logo
-                doc.setFontSize(20);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(...brandColor);
-                doc.text('CALHAS NORTE', margin + 42, y + 12);
-                doc.setFontSize(9);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(...grayColor);
-                doc.text('Sistema de Gestão de Obras', margin + 42, y + 19);
-
-                // Tipo do documento
-                doc.setFontSize(14);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(...darkColor);
-                const docType = item.category === 'counter' ? 'VENDA BALCÃO' : 'ORÇAMENTO / PEDIDO';
-                doc.text(docType, margin + 42, y + 30);
-
-                // ID e Data
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(...brandColor);
-                doc.text('#' + (item.customId || '---'), pageW - margin, y + 12, { align: 'right' });
-                doc.setFontSize(8);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(...grayColor);
-                doc.text('Emitido em: ' + new Date().toLocaleDateString('pt-BR'), pageW - margin, y + 18, { align: 'right' });
-
-                y += 42;
-
-                // Linha separadora
-                doc.setDrawColor(...brandColor);
-                doc.setLineWidth(0.8);
-                doc.line(margin, y, pageW - margin, y);
-                y += 8;
-
-                // --- DADOS DO CLIENTE ---
-                doc.setFillColor(...lightBg);
-                doc.roundedRect(margin, y, contentW, 30, 2, 2, 'F');
-                doc.setFontSize(8);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(...brandColor);
-                doc.text('DADOS DO CLIENTE', margin + 4, y + 5);
-
-                doc.setFontSize(9);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(...darkColor);
-                doc.text(item.clientName || 'Não informado', margin + 4, y + 12);
-
-                doc.setFontSize(8);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(...grayColor);
-                doc.text('Endereço: ' + (item.address || 'Não informado'), margin + 4, y + 18);
-                doc.text('Telefone: ' + (item.phone || 'Não informado'), margin + 4, y + 24);
-
-                // Status e Serviço à direita
-                doc.setFontSize(8);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(...darkColor);
-                doc.text('Serviço: ' + (item.serviceType || '-'), pageW - margin - 4, y + 12, { align: 'right' });
-                doc.text('Status: ' + this.getStatusLabel(item.status), pageW - margin - 4, y + 18, { align: 'right' });
-
-                y += 36;
-
-                // --- VALORES ---
-                doc.setFillColor(...brandColor);
-                doc.roundedRect(margin, y, contentW, 22, 2, 2, 'F');
-                doc.setTextColor(255, 255, 255);
-                doc.setFontSize(8);
-                doc.setFont('helvetica', 'normal');
-
-                const valCols = contentW / 3;
-                if (item.category !== 'counter') {
-                    doc.text('VALOR CONTRATO', margin + 4, y + 6);
+                    doc.setFontSize(8);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text('VALOR SERVIÇO', margin + valCols + 4, y + 6);
                     doc.setFontSize(12);
                     doc.setFont('helvetica', 'bold');
-                    doc.text(this.formatMoney(item.contractValue), margin + 4, y + 15);
-                }
+                    doc.text(this.formatMoney(item.serviceValue), margin + valCols + 4, y + 15);
 
-                doc.setFontSize(8);
-                doc.setFont('helvetica', 'normal');
-                doc.text('VALOR SERVIÇO', margin + valCols + 4, y + 6);
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'bold');
-                doc.text(this.formatMoney(item.serviceValue), margin + valCols + 4, y + 15);
-
-                doc.setFontSize(8);
-                doc.setFont('helvetica', 'normal');
-                doc.text('TOTAL PRODUTOS', margin + valCols * 2 + 4, y + 6);
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'bold');
-                const prodTotal = (item.productLines || []).reduce((a, l) => a + (parseFloat(l.total) || 0), 0);
-                doc.text(this.formatMoney(prodTotal), margin + valCols * 2 + 4, y + 15);
-
-                y += 28;
-
-                // --- DESCRIÇÃO ---
-                if (item.description) {
                     doc.setFontSize(8);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(...brandColor);
-                    doc.text('DESCRIÇÃO', margin, y);
-                    y += 5;
                     doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(...darkColor);
-                    doc.setFontSize(9);
-                    const descLines = doc.splitTextToSize(item.description, contentW);
-                    doc.text(descLines, margin, y);
-                    y += descLines.length * 4.5 + 4;
-                }
+                    doc.text('TOTAL PRODUTOS', margin + valCols * 2 + 4, y + 6);
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    const prodTotal = (item.productLines || []).reduce((a, l) => a + (parseFloat(l.total) || 0), 0);
+                    doc.text(this.formatMoney(prodTotal), margin + valCols * 2 + 4, y + 15);
 
-                // --- TABELA DE PRODUTOS ---
-                if (item.productLines && item.productLines.length > 0) {
+                    y += 28;
+
+                    // --- DESCRIÇÃO ---
+                    if (item.description) {
+                        doc.setFontSize(8);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor(...brandColor);
+                        doc.text('DESCRIÇÃO', margin, y);
+                        y += 5;
+                        doc.setFont('helvetica', 'normal');
+                        doc.setTextColor(...darkColor);
+                        doc.setFontSize(9);
+                        const descLines = doc.splitTextToSize(item.description, contentW);
+                        doc.text(descLines, margin, y);
+                        y += descLines.length * 4.5 + 4;
+                    }
+
+                    // --- TABELA DE PRODUTOS ---
+                    if (item.productLines && item.productLines.length > 0) {
+                        if (y > 230) { doc.addPage(); y = 20; }
+                        doc.setFontSize(8);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor(...brandColor);
+                        doc.text('PRODUTOS DO ORÇAMENTO', margin, y);
+                        y += 3;
+
+                        const tableData = item.productLines.map((line, i) => [
+                            String(i + 1),
+                            line.productCode || '-',
+                            line.productName || line.searchQuery || '-',
+                            String(line.qty || 0),
+                            this.formatMoney(line.unitPrice),
+                            (line.discount || 0) + '%',
+                            line.cfop || '-',
+                            line.csosn || '-',
+                            line.taxCode || '-',
+                            this.formatMoney(line.total)
+                        ]);
+
+                        doc.autoTable({
+                            startY: y,
+                            margin: { left: margin, right: margin },
+                            head: [['#', 'Cód', 'Descrição', 'Qtd', 'Vlr Unit.', 'Desc.', 'CFOP', 'CSOSN', 'Imposto', 'Total']],
+                            body: tableData,
+                            foot: [['', '', '', '', '', '', '', '', 'TOTAL:', this.formatMoney(prodTotal)]],
+                            theme: 'grid',
+                            headStyles: { fillColor: brandColor, textColor: 255, fontSize: 7, fontStyle: 'bold', halign: 'center' },
+                            bodyStyles: { fontSize: 7, textColor: darkColor },
+                            footStyles: { fillColor: lightBg, textColor: darkColor, fontSize: 8, fontStyle: 'bold' },
+                            columnStyles: {
+                                0: { halign: 'center', cellWidth: 8 },
+                                1: { cellWidth: 16 },
+                                2: { cellWidth: 'auto' },
+                                3: { halign: 'center', cellWidth: 12 },
+                                4: { halign: 'right', cellWidth: 20 },
+                                5: { halign: 'center', cellWidth: 14 },
+                                6: { halign: 'center', cellWidth: 16 },
+                                7: { halign: 'center', cellWidth: 14 },
+                                8: { halign: 'center', cellWidth: 16 },
+                                9: { halign: 'right', cellWidth: 22 }
+                            },
+                            alternateRowStyles: { fillColor: [248, 250, 252] }
+                        });
+                        y = doc.lastAutoTable.finalY + 6;
+                    }
+
+                    // --- CONDIÇÕES DE PAGAMENTO ---
+                    if (item.paymentMethod || item.installments || item.paymentTerm) {
+                        if (y > 240) { doc.addPage(); y = 20; }
+
+                        doc.setFillColor(...lightBg);
+                        doc.roundedRect(margin, y, contentW, 32, 2, 2, 'F');
+                        doc.setFontSize(8);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor(...brandColor);
+                        doc.text('CONDIÇÕES DE PAGAMENTO', margin + 4, y + 5);
+
+                        doc.setFontSize(8);
+                        doc.setFont('helvetica', 'normal');
+                        doc.setTextColor(...darkColor);
+                        let payY = y + 12;
+                        const halfW = contentW / 2;
+
+                        if (item.paymentMethod) doc.text('Forma: ' + item.paymentMethod, margin + 4, payY);
+                        if (item.installments) doc.text('Parcelamento: ' + (item.installments === 'Personalizado' ? (item.customInstallments || '') + 'x' : item.installments), margin + halfW, payY);
+                        payY += 6;
+                        if (item.downPayment) doc.text('Entrada: ' + this.formatMoney(item.downPayment), margin + 4, payY);
+                        if (item.paymentTerm) doc.text('Prazo: ' + (item.paymentTerm === 'Outro' ? (item.customPaymentTerm || '') : item.paymentTerm + ' dias'), margin + halfW, payY);
+                        payY += 6;
+                        if (item.paymentNotes) {
+                            doc.setFontSize(7);
+                            doc.setTextColor(...grayColor);
+                            const noteLines = doc.splitTextToSize('Obs: ' + item.paymentNotes, contentW - 8);
+                            doc.text(noteLines, margin + 4, payY);
+                        }
+                        y += 38;
+                    }
+
+                    // --- DATAS ---
+                    if (y > 250) { doc.addPage(); y = 20; }
                     doc.setFontSize(8);
                     doc.setFont('helvetica', 'bold');
                     doc.setTextColor(...brandColor);
-                    doc.text('PRODUTOS DO ORÇAMENTO', margin, y);
+                    doc.text('DATAS DE ACOMPANHAMENTO', margin, y);
                     y += 3;
 
-                    const tableData = item.productLines.map((line, i) => [
-                        (i + 1).toString(),
-                        line.productCode || '-',
-                        line.productName || line.searchQuery || '-',
-                        (line.qty || 0).toString(),
-                        this.formatMoney(line.unitPrice),
-                        (line.discount || 0) + '%',
-                        line.cfop || '-',
-                        line.csosn || '-',
-                        line.taxCode || '-',
-                        this.formatMoney(line.total)
-                    ]);
-
+                    const fdr = (d) => this.formatDateRaw ? this.formatDateRaw(d) : (d || '-');
                     doc.autoTable({
                         startY: y,
                         margin: { left: margin, right: margin },
-                        head: [['#', 'Cód', 'Descrição', 'Qtd', 'Vlr Unit.', 'Desc.', 'CFOP', 'CSOSN', 'Imposto', 'Total']],
-                        body: tableData,
-                        foot: [['', '', '', '', '', '', '', '', 'TOTAL:', this.formatMoney(prodTotal)]],
+                        head: [['Orçamento', 'Contrato', 'Faturamento', 'Recebimento']],
+                        body: [[ fdr(item.budgetDate), fdr(item.contractDate), fdr(item.billingDate), fdr(item.revenueDate) ]],
                         theme: 'grid',
-                        headStyles: { fillColor: brandColor, textColor: 255, fontSize: 7, fontStyle: 'bold', halign: 'center' },
-                        bodyStyles: { fontSize: 7, textColor: darkColor },
-                        footStyles: { fillColor: lightBg, textColor: darkColor, fontSize: 8, fontStyle: 'bold' },
-                        columnStyles: {
-                            0: { halign: 'center', cellWidth: 8 },
-                            1: { cellWidth: 16 },
-                            2: { cellWidth: 'auto' },
-                            3: { halign: 'center', cellWidth: 12 },
-                            4: { halign: 'right', cellWidth: 20 },
-                            5: { halign: 'center', cellWidth: 14 },
-                            6: { halign: 'center', cellWidth: 16 },
-                            7: { halign: 'center', cellWidth: 14 },
-                            8: { halign: 'center', cellWidth: 16 },
-                            9: { halign: 'right', cellWidth: 22 }
-                        },
-                        alternateRowStyles: { fillColor: [248, 250, 252] }
+                        headStyles: { fillColor: [100, 116, 139], textColor: 255, fontSize: 7, fontStyle: 'bold', halign: 'center' },
+                        bodyStyles: { fontSize: 8, halign: 'center', textColor: darkColor },
                     });
-                    y = doc.lastAutoTable.finalY + 6;
-                }
+                    y = doc.lastAutoTable.finalY + 10;
 
-                // --- CONDIÇÕES DE PAGAMENTO ---
-                if (item.paymentMethod || item.installments || item.paymentTerm) {
-                    // Verificar se precisa nova página
-                    if (y > 240) { doc.addPage(); y = 20; }
-
-                    doc.setFillColor(...lightBg);
-                    doc.roundedRect(margin, y, contentW, 32, 2, 2, 'F');
-                    doc.setFontSize(8);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(...brandColor);
-                    doc.text('CONDIÇÕES DE PAGAMENTO', margin + 4, y + 5);
-
-                    doc.setFontSize(8);
+                    // --- RODAPÉ ---
+                    const footerY = doc.internal.pageSize.getHeight() - 15;
+                    doc.setDrawColor(200, 200, 200);
+                    doc.setLineWidth(0.3);
+                    doc.line(margin, footerY - 4, pageW - margin, footerY - 4);
+                    doc.setFontSize(7);
                     doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(...darkColor);
-                    let payY = y + 12;
-                    const halfW = contentW / 2;
+                    doc.setTextColor(...grayColor);
+                    doc.text('Calhas Norte - Sistema de Gestão de Obras', margin, footerY);
+                    doc.text('Documento gerado em ' + new Date().toLocaleString('pt-BR'), pageW - margin, footerY, { align: 'right' });
 
-                    if (item.paymentMethod) { doc.text('Forma: ' + item.paymentMethod, margin + 4, payY); }
-                    if (item.installments) { doc.text('Parcelamento: ' + (item.installments === 'Personalizado' ? (item.customInstallments || '') + 'x' : item.installments), margin + halfW, payY); }
-                    payY += 6;
-                    if (item.downPayment) { doc.text('Entrada: ' + this.formatMoney(item.downPayment), margin + 4, payY); }
-                    if (item.paymentTerm) { doc.text('Prazo: ' + (item.paymentTerm === 'Outro' ? (item.customPaymentTerm || '') : item.paymentTerm + ' dias'), margin + halfW, payY); }
-                    payY += 6;
-                    if (item.paymentNotes) {
+                    // Assinaturas
+                    if (y < footerY - 35) {
+                        const sigY = footerY - 25;
+                        doc.setDrawColor(...grayColor);
+                        doc.setLineWidth(0.3);
+                        doc.line(margin, sigY, margin + 65, sigY);
+                        doc.line(pageW - margin - 65, sigY, pageW - margin, sigY);
                         doc.setFontSize(7);
                         doc.setTextColor(...grayColor);
-                        const noteLines = doc.splitTextToSize('Obs: ' + item.paymentNotes, contentW - 8);
-                        doc.text(noteLines, margin + 4, payY);
+                        doc.text('Calhas Norte', margin + 32.5, sigY + 5, { align: 'center' });
+                        doc.text('Cliente', pageW - margin - 32.5, sigY + 5, { align: 'center' });
                     }
-                    y += 38;
+
+                    const fileName = 'Orcamento_' + (item.customId || 'novo') + '_' + (item.clientName || 'cliente').replace(/[^a-zA-Z0-9]/g, '_') + '.pdf';
+                    doc.save(fileName);
+
+                } catch(err) {
+                    console.error('Erro ao gerar PDF:', err);
+                    alert('Erro ao gerar PDF: ' + err.message);
                 }
-
-                // --- DATAS DE ACOMPANHAMENTO ---
-                if (y > 250) { doc.addPage(); y = 20; }
-
-                doc.setFontSize(8);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(...brandColor);
-                doc.text('DATAS DE ACOMPANHAMENTO', margin, y);
-                y += 5;
-
-                doc.autoTable({
-                    startY: y,
-                    margin: { left: margin, right: margin },
-                    head: [['Orçamento', 'Contrato', 'Faturamento', 'Recebimento']],
-                    body: [[
-                        this.formatDateRaw(item.budgetDate) || '-',
-                        this.formatDateRaw(item.contractDate) || '-',
-                        this.formatDateRaw(item.billingDate) || '-',
-                        this.formatDateRaw(item.revenueDate) || '-'
-                    ]],
-                    theme: 'grid',
-                    headStyles: { fillColor: [100, 116, 139], textColor: 255, fontSize: 7, fontStyle: 'bold', halign: 'center' },
-                    bodyStyles: { fontSize: 8, halign: 'center', textColor: darkColor },
-                });
-                y = doc.lastAutoTable.finalY + 10;
-
-                // --- RODAPÉ ---
-                const footerY = doc.internal.pageSize.getHeight() - 15;
-                doc.setDrawColor(200, 200, 200);
-                doc.setLineWidth(0.3);
-                doc.line(margin, footerY - 4, pageW - margin, footerY - 4);
-                doc.setFontSize(7);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(...grayColor);
-                doc.text('Calhas Norte - Sistema de Gestão de Obras', margin, footerY);
-                doc.text('Documento gerado em ' + new Date().toLocaleString('pt-BR'), pageW - margin, footerY, { align: 'right' });
-
-                // Assinaturas
-                if (y < footerY - 35) {
-                    const sigY = footerY - 25;
-                    doc.setDrawColor(...grayColor);
-                    doc.setLineWidth(0.3);
-                    doc.line(margin, sigY, margin + 65, sigY);
-                    doc.line(pageW - margin - 65, sigY, pageW - margin, sigY);
-                    doc.setFontSize(7);
-                    doc.setTextColor(...grayColor);
-                    doc.text('Calhas Norte', margin + 32.5, sigY + 5, { align: 'center' });
-                    doc.text('Cliente', pageW - margin - 32.5, sigY + 5, { align: 'center' });
-                }
-
-                // Salvar
-                const fileName = `Orcamento_${item.customId || 'novo'}_${(item.clientName || 'cliente').replace(/\s+/g, '_')}.pdf`;
-                doc.save(fileName);
-            },
-
-            async loadImageAsBase64(url) {
-                return new Promise((resolve) => {
-                    const img = new Image();
-                    img.crossOrigin = 'Anonymous';
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0);
-                        resolve(canvas.toDataURL('image/png'));
-                    };
-                    img.onerror = () => resolve(null);
-                    img.src = url;
-                });
             },
 
             initProfitChart() {
