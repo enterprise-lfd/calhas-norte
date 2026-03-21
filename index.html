@@ -243,27 +243,27 @@
                             <i data-lucide="download" class="w-4 h-4"></i> Excel
                         </button>
                         <button @click="$refs.clientFile.click()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
-                            <i data-lucide="upload" class="w-4 h-4"></i> Importar CSV
+                            <i data-lucide="upload" class="w-4 h-4"></i> Importar
                         </button>
-                        <input type="file" x-ref="clientFile" class="hidden" accept=".csv" @change="handleFileUpload($event, 'clients')">
+                        <input type="file" x-ref="clientFile" class="hidden" accept=".csv,.xls,.xlsx" @change="handleFileUpload($event, 'clients')">
                     </div>
                     <div x-show="currentView === 'suppliers'" class="flex gap-2">
                         <button @click="exportToExcel('suppliers')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
                             <i data-lucide="download" class="w-4 h-4"></i> Excel
                         </button>
                         <button @click="$refs.supplierFile.click()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
-                            <i data-lucide="upload" class="w-4 h-4"></i> Importar CSV
+                            <i data-lucide="upload" class="w-4 h-4"></i> Importar
                         </button>
-                        <input type="file" x-ref="supplierFile" class="hidden" accept=".csv" @change="handleFileUpload($event, 'suppliers')">
+                        <input type="file" x-ref="supplierFile" class="hidden" accept=".csv,.xls,.xlsx" @change="handleFileUpload($event, 'suppliers')">
                     </div>
                     <div x-show="currentView === 'products_mgr'" class="flex gap-2">
                          <button @click="exportToExcel('products')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
                             <i data-lucide="download" class="w-4 h-4"></i> Excel
                         </button>
                         <button @click="$refs.productFile.click()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
-                            <i data-lucide="upload" class="w-4 h-4"></i> Importar CSV
+                            <i data-lucide="upload" class="w-4 h-4"></i> Importar
                         </button>
-                        <input type="file" x-ref="productFile" class="hidden" accept=".csv" @change="handleFileUpload($event, 'products')">
+                        <input type="file" x-ref="productFile" class="hidden" accept=".csv,.xls,.xlsx" @change="handleFileUpload($event, 'products')">
                     </div>
                     <!-- Botões para Impostos -->
                     <div x-show="currentView === 'taxes'" class="flex gap-2">
@@ -271,9 +271,9 @@
                             <i data-lucide="download" class="w-4 h-4"></i> Excel
                         </button>
                         <button @click="$refs.taxFile.click()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
-                            <i data-lucide="upload" class="w-4 h-4"></i> Importar CSV
+                            <i data-lucide="upload" class="w-4 h-4"></i> Importar
                         </button>
-                        <input type="file" x-ref="taxFile" class="hidden" accept=".csv" @change="handleFileUpload($event, 'taxes')">
+                        <input type="file" x-ref="taxFile" class="hidden" accept=".csv,.xls,.xlsx" @change="handleFileUpload($event, 'taxes')">
                     </div>
 
                     <button @click="openModal()" class="bg-accent-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm" x-show="currentView !== 'invoices' && currentView !== 'profitability'">
@@ -302,6 +302,7 @@
                             <option value="Rufos">Rufos</option>
                             <option value="Completo">Completo</option>
                             <option value="Limpeza">Limpeza</option>
+                            <option value="Mão de Obra">Mão de Obra</option>
                             <option value="Outros">Outros</option>
                         </select>
                     </div>
@@ -983,15 +984,34 @@
                                                 </select>
                                             </div>
 
-                                            <!-- Seleção de Cliente (Novo requisito) -->
+                                            <!-- Seleção de Cliente (Busca por nome) -->
                                             <div class="border-t border-slate-200 mt-2 pt-2" x-show="!linkToExisting">
                                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Buscar Cliente Cadastrado</label>
-                                                <select x-model="selectedClientId" @change="fillClientData()" class="w-full px-3 py-2 border rounded-lg bg-blue-50 border-blue-300">
-                                                    <option value="">-- Selecione para preencher --</option>
-                                                    <template x-for="c in sortedFilteredClients" :key="c.id">
-                                                        <option :value="c.id" x-text="c.name"></option>
-                                                    </template>
-                                                </select>
+                                                <div class="relative">
+                                                    <div class="relative">
+                                                        <input type="text" x-model="clientSearchQuery" @input="clientSearchOpen = true" @focus="clientSearchOpen = true" @click.away="setTimeout(() => clientSearchOpen = false, 200)" placeholder="Digite o nome ou razão social..." class="w-full px-3 py-2 border rounded-lg bg-blue-50 border-blue-300 pr-8 text-sm">
+                                                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2"></i>
+                                                    </div>
+                                                    <div x-show="clientSearchOpen && clientSearchQuery.length >= 1 && clientSearchResults.length > 0" class="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                                        <template x-for="c in clientSearchResults" :key="c.id">
+                                                            <button type="button" @click="selectClientFromSearch(c)" class="w-full text-left px-3 py-2 hover:bg-blue-50 border-b border-slate-100 last:border-0 transition">
+                                                                <div class="text-sm font-medium text-slate-800" x-text="c.fantasy || c.name"></div>
+                                                                <div class="text-[10px] text-slate-500 flex gap-2">
+                                                                    <span x-text="c.name" x-show="c.fantasy"></span>
+                                                                    <span x-show="c.document" x-text="'Doc: ' + c.document"></span>
+                                                                    <span x-show="c.city" x-text="c.city + '/' + (c.state || '')"></span>
+                                                                </div>
+                                                            </button>
+                                                        </template>
+                                                    </div>
+                                                    <div x-show="clientSearchOpen && clientSearchQuery.length >= 1 && clientSearchResults.length === 0" class="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg p-3 text-center text-xs text-slate-400">
+                                                        Nenhum cliente encontrado.
+                                                    </div>
+                                                </div>
+                                                <p x-show="selectedClientId" class="text-[10px] text-green-600 mt-1 flex items-center gap-1">
+                                                    <i data-lucide="check-circle" class="w-3 h-3"></i> Cliente vinculado: <strong x-text="selectedClientName"></strong>
+                                                    <button type="button" @click="clearClientSelection()" class="ml-1 text-red-400 hover:text-red-600 underline">remover</button>
+                                                </p>
                                             </div>
                                         </div>
                                         
@@ -1031,6 +1051,7 @@
                                             <option value="Rufos">Instalação de Rufos</option>
                                             <option value="Completo">Calhas + Rufos</option>
                                             <option value="Limpeza">Limpeza</option>
+                                            <option value="Mão de Obra">Mão de Obra</option>
                                             <option value="Outros">Outros</option>
                                         </select>
                                     </div>
@@ -1129,7 +1150,14 @@
                                     </div>
                                     <div>
                                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">CEP</label>
-                                        <input type="text" x-model="currentItem.zip" class="w-full px-3 py-2 border rounded-lg" placeholder="00000-000">
+                                        <div class="relative">
+                                            <input type="text" x-model="currentItem.zip" @blur="fetchCep()" @keyup.enter="fetchCep()" class="w-full px-3 py-2 border rounded-lg pr-10" placeholder="00000-000">
+                                            <button type="button" @click="fetchCep()" class="absolute right-2 top-1/2 -translate-y-1/2 text-brand-600 hover:text-brand-800" title="Buscar CEP">
+                                                <i data-lucide="search" class="w-4 h-4"></i>
+                                            </button>
+                                        </div>
+                                        <p x-show="cepLoading" class="text-[10px] text-brand-600 mt-0.5 animate-pulse">Buscando CEP...</p>
+                                        <p x-show="cepError" class="text-[10px] text-red-500 mt-0.5" x-text="cepError"></p>
                                     </div>
                                     <div>
                                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Endereço (Logradouro)</label>
@@ -1186,7 +1214,7 @@
                                         <input type="email" x-model="currentItem.email" class="w-full px-3 py-2 border rounded-lg">
                                     </div>
                                     <div class="sm:col-span-2 border-t border-slate-100 pt-4 mt-2 mb-2"><h4 class="text-xs font-bold text-slate-400 uppercase">Endereço</h4></div>
-                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">CEP</label><input type="text" x-model="currentItem.zip" class="w-full px-3 py-2 border rounded-lg"></div>
+                                    <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">CEP</label><div class="relative"><input type="text" x-model="currentItem.zip" @blur="fetchCep()" @keyup.enter="fetchCep()" class="w-full px-3 py-2 border rounded-lg pr-10"><button type="button" @click="fetchCep()" class="absolute right-2 top-1/2 -translate-y-1/2 text-brand-600 hover:text-brand-800" title="Buscar CEP"><i data-lucide="search" class="w-4 h-4"></i></button></div></div>
                                     <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Endereço</label><input type="text" x-model="currentItem.address" class="w-full px-3 py-2 border rounded-lg"></div>
                                     <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Número</label><input type="text" x-model="currentItem.number" class="w-full px-3 py-2 border rounded-lg"></div>
                                     <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Complemento</label><input type="text" x-model="currentItem.complement" class="w-full px-3 py-2 border rounded-lg"></div>
@@ -1560,6 +1588,11 @@
             selectedClientId: '', // ID do cliente selecionado no dropdown
             saveAsNewClient: false, // Checkbox para salvar novo cliente
             hasLabor: false, 
+            cepLoading: false,
+            cepError: '',
+            clientSearchQuery: '',
+            clientSearchOpen: false,
+            selectedClientName: '',
             coursesDef: COURSES_DEF,
             
             costChecks: {
@@ -1646,6 +1679,16 @@
                     if (codeA !== 0 && codeB !== 0) return codeB - codeA;
                     return (b.code || '').localeCompare(a.code || '');
                 });
+            },
+
+            get clientSearchResults() {
+                if (!this.clientSearchQuery || this.clientSearchQuery.length < 1) return [];
+                const q = this.clientSearchQuery.toLowerCase();
+                return this.clients.filter(c => 
+                    (c.name && c.name.toLowerCase().includes(q)) || 
+                    (c.fantasy && c.fantasy.toLowerCase().includes(q)) ||
+                    (c.document && c.document.includes(q))
+                ).slice(0, 10);
             },
 
             get sortedFilteredProducts() {
@@ -1918,6 +1961,44 @@
                 }
             },
 
+            selectClientFromSearch(client) {
+                this.selectedClientId = client.id;
+                this.selectedClientName = client.fantasy || client.name;
+                this.clientSearchQuery = '';
+                this.clientSearchOpen = false;
+                this.fillClientData();
+            },
+
+            clearClientSelection() {
+                this.selectedClientId = '';
+                this.selectedClientName = '';
+                this.clientSearchQuery = '';
+                this.currentItem.clientName = '';
+                this.currentItem.phone = '';
+                this.currentItem.address = '';
+            },
+
+            async fetchCep() {
+                const cep = (this.currentItem.zip || '').replace(/\D/g, '');
+                if (cep.length !== 8) { this.cepError = 'CEP deve ter 8 dígitos'; return; }
+                this.cepLoading = true;
+                this.cepError = '';
+                try {
+                    const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                    const data = await resp.json();
+                    if (data.erro) { this.cepError = 'CEP não encontrado'; this.cepLoading = false; return; }
+                    this.currentItem.address = data.logradouro || '';
+                    this.currentItem.district = data.bairro || '';
+                    this.currentItem.city = data.localidade || '';
+                    this.currentItem.state = data.uf || '';
+                    this.currentItem.complement = data.complemento || this.currentItem.complement || '';
+                    this.currentItem.zip = data.cep || cep;
+                } catch (e) {
+                    this.cepError = 'Erro ao buscar CEP. Verifique sua conexão.';
+                    console.error('CEP fetch error:', e);
+                } finally { this.cepLoading = false; }
+            },
+
             initProfitChart() {
                 if(window.profitChartInstance) window.profitChartInstance.destroy();
                 const ctx = document.getElementById('profitabilityChart');
@@ -2047,131 +2128,346 @@
             async handleFileUpload(event, type) {
                 const file = event.target.files[0];
                 if (!file) return;
+                const fileName = file.name.toLowerCase();
+                const isExcel = fileName.endsWith('.xls') || fileName.endsWith('.xlsx');
 
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const text = e.target.result;
-                    const rows = text.split('\n').filter(row => row.trim() !== '');
-                    
-                    let count = 0;
-                    const colName = type === 'clients' ? 'clientes' : (type === 'products' ? 'produtos' : (type === 'suppliers' ? 'fornecedores' : 'impostos'));
-                    const today = new Date().toISOString().split('T')[0];
-                    
-                    for (let i = 1; i < rows.length; i++) { // Pula header
-                        const cols = rows[i].split(';'); 
-                        const finalCols = cols.length > 1 ? cols : rows[i].split(','); 
+                if (isExcel) {
+                    // --- XLS / XLSX via SheetJS ---
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonRows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+
+                        if (jsonRows.length === 0) { alert('Arquivo vazio ou sem dados.'); return; }
+
+                        let count = 0;
+                        const today = new Date().toISOString().split('T')[0];
+                        const colName = type === 'clients' ? 'clientes' : (type === 'products' ? 'produtos' : (type === 'suppliers' ? 'fornecedores' : 'impostos'));
+                        const headers = Object.keys(jsonRows[0]);
                         
-                        if (finalCols.length < 2) continue;
+                        // Detectar se é formato Calhas Norte (A1_ para clientes, A2_ para fornecedores, B1_ para produtos)
+                        const isCalhasFormat = headers.some(h => h.startsWith('A1_') || h.startsWith('A2_') || h.startsWith('B1_'));
 
-                        let payload = {};
-                        if (type === 'clients') {
-                            const tipoRaw = (finalCols[4]?.trim() || 'Juridica').toLowerCase();
-                            const tipoFinal = tipoRaw.includes('fisica') ? 'Fisica' : 'Juridica';
+                        for (const row of jsonRows) {
+                            let payload = {};
 
-                            payload = {
-                                code: finalCols[0]?.trim() || '',
-                                document: finalCols[1]?.trim() || '',
-                                name: finalCols[2]?.trim() || '',
-                                fantasy: finalCols[3]?.trim() || '',
-                                type: tipoFinal,
-                                phone: this.formatPhoneOnImport(finalCols[5]?.trim()),
-                                cell: this.formatPhoneOnImport(finalCols[6]?.trim()),
-                                registerDate: today, 
-                                email: finalCols[7]?.trim() || '', 
-                                zip: finalCols[8]?.trim() || '',
-                                address: finalCols[9]?.trim() || '',
-                                number: finalCols[10]?.trim() || '',
-                                complement: finalCols[11]?.trim() || '',
-                                district: finalCols[12]?.trim() || '',
-                                city: finalCols[13]?.trim() || '',
-                                state: finalCols[14]?.trim() || '',
-                                notes: finalCols[15]?.trim() || '',
-                                createdAt: { seconds: Date.now() / 1000 }
-                            };
-                        } else if (type === 'products') {
-                             // Ordem: Cod, ID, Desc, Preço, Grupo, Sub, Model, Custo, Fornec, NCM, Imposto, UN
-                            payload = {
-                                code: finalCols[0]?.trim() || '',
-                                idCode: finalCols[1]?.trim() || '',
-                                description: finalCols[2]?.trim() || '',
-                                price: parseFloat(finalCols[3]?.trim().replace(',','.')) || 0,
-                                group: finalCols[4]?.trim() || '',
-                                subgroup: finalCols[5]?.trim() || '',
-                                model: finalCols[6]?.trim() || '',
-                                costPrice: parseFloat(finalCols[7]?.trim().replace(',','.')) || 0,
-                                registerDate: today, 
-                                supplier: finalCols[9]?.trim() || '',
-                                ncm: finalCols[10]?.trim() || '',
-                                taxCode: finalCols[11]?.trim() || '',
-                                unit: finalCols[12]?.trim() || 'UN',
-                                createdAt: { seconds: Date.now() / 1000 }
-                            };
-                        } else if (type === 'taxes') {
-                             payload = {
-                                AP_NCM: finalCols[0]?.trim() || '',
-                                AR_COFINS: parseFloat(finalCols[1]?.trim().replace(',','.')) || 0,
-                                AR_CSLL: parseFloat(finalCols[2]?.trim().replace(',','.')) || 0,
-                                AR_ICMS: parseFloat(finalCols[3]?.trim().replace(',','.')) || 0,
-                                AR_IPI: parseFloat(finalCols[4]?.trim().replace(',','.')) || 0,
-                                AR_IR: parseFloat(finalCols[5]?.trim().replace(',','.')) || 0,
-                                AR_ISS: parseFloat(finalCols[6]?.trim().replace(',','.')) || 0,
-                                AR_ST_MVA: parseFloat(finalCols[7]?.trim().replace(',','.')) || 0,
-                                AR_PIS: parseFloat(finalCols[8]?.trim().replace(',','.')) || 0,
-                                AR_BASE_ICMS: parseFloat(finalCols[9]?.trim().replace(',','.')) || 0,
-                                AR_BASE_IPI: parseFloat(finalCols[10]?.trim().replace(',','.')) || 0,
-                                AR_ESTADO: finalCols[11]?.trim() || '',
-                                AR_TIPOCLI: finalCols[12]?.trim() || '',
-                                CODIGOID: finalCols[13]?.trim() || '',
-                                AR_CODIGO_DAP: finalCols[14]?.trim() || '',
-                                AR_OPERACAO: finalCols[15]?.trim() || '',
-                                AR_ST: finalCols[16]?.trim() || '',
-                                AR_ICM_SITT: finalCols[17]?.trim() || '',
-                                AR_IPI_SITT: finalCols[18]?.trim() || '',
-                                AR_COF_SITT: finalCols[19]?.trim() || '',
-                                AR_PIS_SITT: finalCols[20]?.trim() || '',
-                                AR_ISS_SITT: finalCols[21]?.trim() || '',
-                                AR_CFOP: finalCols[22]?.trim() || '',
-                                AR_CSOSN: finalCols[23]?.trim() || '',
-                                AR_RED_ISMST: parseFloat(finalCols[24]?.trim().replace(',','.')) || 0,
-                                AR_FILIAL: finalCols[25]?.trim() || '',
-                                AR_PESSOA: finalCols[26]?.trim() || '',
-                                AR_PER_FCP: parseFloat(finalCols[27]?.trim().replace(',','.')) || 0,
-                                AR_PER_ICMS_I: parseFloat(finalCols[28]?.trim().replace(',','.')) || 0,
-                                AR_PER_ICMS_P: parseFloat(finalCols[29]?.trim().replace(',','.')) || 0,
-                                createdAt: { seconds: Date.now() / 1000 }
-                             };
-                        } else if (type === 'suppliers') {
-                            payload = {
-                                companyName: finalCols[0]?.trim() || '',
-                                document: finalCols[1]?.trim() || '',
-                                legalName: finalCols[2]?.trim() || '',
-                                zip: finalCols[3]?.trim() || '',
-                                address: finalCols[4]?.trim() || '',
-                                number: finalCols[5]?.trim() || '',
-                                complement: finalCols[6]?.trim() || '',
-                                district: finalCols[7]?.trim() || '',
-                                city: finalCols[8]?.trim() || '',
-                                phone: this.formatPhoneOnImport(finalCols[9]?.trim()),
-                                email: finalCols[10]?.trim() || '',
-                                contactName: finalCols[11]?.trim() || '',
-                                notes: finalCols[12]?.trim() || '',
-                                createdAt: { seconds: Date.now() / 1000 }
-                            };
+                            if (type === 'clients') {
+                                if (isCalhasFormat) {
+                                    // Formato XLS Calhas Norte
+                                    const v = (key) => { const val = row[key]; return (val === null || val === undefined || val === 'null') ? '' : String(val).trim(); };
+                                    const pessoaRaw = v('A1_PESSOA');
+                                    const tipoFinal = (pessoaRaw === 'F' || pessoaRaw === 'f') ? 'Fisica' : 'Juridica';
+                                    const fantasia = v('A1_FANTASIA');
+
+                                    payload = {
+                                        code: v('A1_COD'),
+                                        document: v('A1_CNPJ'),
+                                        ie: v('A1_IE'),
+                                        name: v('A1_NOME'),
+                                        fantasy: (fantasia === '********' || fantasia === '*') ? '' : fantasia,
+                                        type: tipoFinal,
+                                        phone: this.formatPhoneOnImport(v('A1_TEL')),
+                                        cell: this.formatPhoneOnImport(v('A1_TEL2') || v('A1_TEL3')),
+                                        email: v('A1_EMAIL'),
+                                        zip: v('A1_CEP'),
+                                        address: v('A1_END'),
+                                        number: v('A1_NUM'),
+                                        complement: v('A1_COMPL'),
+                                        district: v('A1_BAIRRO'),
+                                        city: v('A1_MUN'),
+                                        state: v('A1_UF'),
+                                        notes: v('A1_OBS'),
+                                        registerDate: v('A1_DTCAD') || today,
+                                        createdAt: { seconds: Date.now() / 1000 }
+                                    };
+                                } else {
+                                    // Formato genérico (headers como Código, CNPJ, Nome, etc)
+                                    const v = (key) => { const val = row[key]; return (val === null || val === undefined || val === 'null') ? '' : String(val).trim(); };
+                                    payload = {
+                                        code: v(headers[0]),
+                                        document: v(headers[1]),
+                                        name: v(headers[2]),
+                                        fantasy: v(headers[3]),
+                                        type: (v(headers[4]) || '').toLowerCase().includes('fisic') ? 'Fisica' : 'Juridica',
+                                        phone: this.formatPhoneOnImport(v(headers[5])),
+                                        cell: this.formatPhoneOnImport(v(headers[6])),
+                                        email: v(headers[7]),
+                                        zip: v(headers[8]),
+                                        address: v(headers[9]),
+                                        number: v(headers[10]),
+                                        complement: v(headers[11]),
+                                        district: v(headers[12]),
+                                        city: v(headers[13]),
+                                        state: v(headers[14]),
+                                        notes: v(headers[15]),
+                                        registerDate: today,
+                                        createdAt: { seconds: Date.now() / 1000 }
+                                    };
+                                }
+                            } else if (type === 'products') {
+                                const isProductFormat = headers.some(h => h.startsWith('B1_'));
+                                if (isProductFormat) {
+                                    // Formato XLS Calhas Norte Produtos (B1_COD, B1_DESC, etc)
+                                    const v = (key) => { const val = row[key]; return (val === null || val === undefined || val === 'null') ? '' : String(val).trim(); };
+                                    const pf = (key) => parseFloat(String(row[key] || '0').replace(',','.')) || 0;
+                                    payload = {
+                                        code: v('B1_COD'),
+                                        idCode: v('B1_COD_INT') || v('CODIGOID'),
+                                        description: v('B1_DESC'),
+                                        unit: v('B1_UM') || 'UN',
+                                        ncm: v('B1_NCM'),
+                                        taxCode: v('B1_GR_TRIB') || v('B1_REG_IMPOS'),
+                                        price: pf('B1_PRECO'),
+                                        costPrice: pf('B1_VL_COMPRA'),
+                                        group: v('B1_GRUPO'),
+                                        subgroup: v('B1_SUBGRUPO'),
+                                        model: v('B1_MODELO'),
+                                        supplier: v('B1_FORNECEDOR'),
+                                        registerDate: v('B1_ULT_COMP_D') || today,
+                                        createdAt: { seconds: Date.now() / 1000 }
+                                    };
+                                } else {
+                                    // Formato genérico
+                                    payload = {
+                                        code: String(row[headers[0]] || '').trim(),
+                                        idCode: String(row[headers[1]] || '').trim(),
+                                        description: String(row[headers[2]] || '').trim(),
+                                        price: parseFloat(String(row[headers[3]] || '0').replace(',','.')) || 0,
+                                        group: String(row[headers[4]] || '').trim(),
+                                        subgroup: String(row[headers[5]] || '').trim(),
+                                        model: String(row[headers[6]] || '').trim(),
+                                        costPrice: parseFloat(String(row[headers[7]] || '0').replace(',','.')) || 0,
+                                        registerDate: today,
+                                        supplier: String(row[headers[9]] || '').trim(),
+                                        ncm: String(row[headers[10]] || '').trim(),
+                                        taxCode: String(row[headers[11]] || '').trim(),
+                                        unit: String(row[headers[12]] || 'UN').trim(),
+                                        createdAt: { seconds: Date.now() / 1000 }
+                                    };
+                                }
+                            } else if (type === 'suppliers') {
+                                const isSupplierFormat = headers.some(h => h.startsWith('A2_'));
+                                if (isSupplierFormat) {
+                                    // Formato XLS Calhas Norte Fornecedores (A2_COD, A2_CNPJ, etc)
+                                    const v = (key) => { const val = row[key]; return (val === null || val === undefined || val === 'null') ? '' : String(val).trim(); };
+                                    const fantasia = v('A2_FANTASIA');
+                                    payload = {
+                                        companyName: (fantasia === '********' || fantasia === '*') ? v('A2_NOME') : (fantasia || v('A2_NOME')),
+                                        legalName: v('A2_NOME'),
+                                        document: v('A2_CNPJ'),
+                                        zip: v('A2_CEP'),
+                                        address: v('A2_END'),
+                                        number: v('A2_NUM'),
+                                        complement: v('A2_COMPL'),
+                                        district: v('A2_BAIRRO'),
+                                        city: v('A2_MUN'),
+                                        state: v('A2_UF'),
+                                        phone: this.formatPhoneOnImport(v('A2_TEL')),
+                                        email: v('A2_EMAIL'),
+                                        contactName: v('A2_CONTATO') || v('A2_CONTATO2'),
+                                        notes: v('A2_OBS'),
+                                        registerDate: v('A2_DTCAD') || today,
+                                        createdAt: { seconds: Date.now() / 1000 }
+                                    };
+                                } else {
+                                    // Formato genérico
+                                    payload = {
+                                        companyName: String(row[headers[0]] || '').trim(),
+                                        document: String(row[headers[1]] || '').trim(),
+                                        legalName: String(row[headers[2]] || '').trim(),
+                                        zip: String(row[headers[3]] || '').trim(),
+                                        address: String(row[headers[4]] || '').trim(),
+                                        number: String(row[headers[5]] || '').trim(),
+                                        complement: String(row[headers[6]] || '').trim(),
+                                        district: String(row[headers[7]] || '').trim(),
+                                        city: String(row[headers[8]] || '').trim(),
+                                        phone: this.formatPhoneOnImport(String(row[headers[9]] || '').trim()),
+                                        email: String(row[headers[10]] || '').trim(),
+                                        contactName: String(row[headers[11]] || '').trim(),
+                                        notes: String(row[headers[12]] || '').trim(),
+                                        createdAt: { seconds: Date.now() / 1000 }
+                                    };
+                                }
+                            } else if (type === 'taxes') {
+                                const isTaxFormat = headers.some(h => h.startsWith('AR_') || h === 'AP_NCM');
+                                const pf = (k) => parseFloat(String(row[k] || '0').replace(',','.')) || 0;
+                                const sv = (k) => { const val = row[k]; return (val === null || val === undefined || val === 'null') ? '' : String(val).trim(); };
+                                if (isTaxFormat) {
+                                    // Formato XLS Calhas Norte Impostos (AP_NCM, AR_COFINS, etc)
+                                    payload = {
+                                        AP_NCM: sv('AP_NCM'),
+                                        AR_COFINS: pf('AR_COFINS'), AR_CSLL: pf('AR_CSLL'), AR_ICMS: pf('AR_ICMS'),
+                                        AR_IPI: pf('AR_IPI'), AR_IR: pf('AR_IR'), AR_ISS: pf('AR_ISS'),
+                                        AR_ST_MVA: pf('AR_ST_MVA'), AR_PIS: pf('AR_PIS'),
+                                        AR_BASE_ICMS: pf('AR_BASE_ICMS'), AR_BASE_IPI: pf('AR_BASE_IPI'),
+                                        AR_ESTADO: sv('AR_ESTADO'), AR_TIPOCLI: sv('AR_TIPOCLI'),
+                                        CODIGOID: sv('CODIGOID'), AR_CODIGO_DAP: sv('AR_CODIGO_DAP'),
+                                        AR_OPERACAO: sv('AR_OPERACAO'), AR_ST: sv('AR_ST'),
+                                        AR_ICM_SITT: sv('AR_ICM_SITT'), AR_IPI_SITT: sv('AR_IPI_SITT'),
+                                        AR_COF_SITT: sv('AR_COF_SITT'), AR_PIS_SITT: sv('AR_PIS_SITT'),
+                                        AR_ISS_SITT: sv('AR_ISS_SITT'), AR_CFOP: sv('AR_CFOP'),
+                                        AR_CSOSN: sv('AR_CSOSN'), AR_RED_ISMST: pf('AR_RED_ISMST'),
+                                        AR_FILIAL: sv('AR_FILIAL'), AR_PESSOA: sv('AR_PESSOA'),
+                                        AR_PER_FCP: pf('AR_PER_FCP'), AR_PER_ICMS_I: pf('AR_PER_ICMS_I'),
+                                        AR_PER_ICMS_P: pf('AR_PER_ICMS_P'),
+                                        createdAt: { seconds: Date.now() / 1000 }
+                                    };
+                                } else {
+                                    // Formato genérico por posição
+                                    payload = {
+                                        AP_NCM: sv(headers[0]), AR_COFINS: pf(headers[1]), AR_CSLL: pf(headers[2]),
+                                        AR_ICMS: pf(headers[3]), AR_IPI: pf(headers[4]), AR_IR: pf(headers[5]),
+                                        AR_ISS: pf(headers[6]), AR_ST_MVA: pf(headers[7]), AR_PIS: pf(headers[8]),
+                                        AR_BASE_ICMS: pf(headers[9]), AR_BASE_IPI: pf(headers[10]),
+                                        AR_ESTADO: sv(headers[11]), AR_TIPOCLI: sv(headers[12]),
+                                        CODIGOID: sv(headers[13]), AR_CODIGO_DAP: sv(headers[14]),
+                                        AR_OPERACAO: sv(headers[15]),
+                                        createdAt: { seconds: Date.now() / 1000 }
+                                    };
+                                }
+                            }
+
+                            if (db) await addDoc(collection(db, colName), payload);
+                            else {
+                                if(type === 'clients') this.clients.push({id: Math.random(), ...payload});
+                                else if(type === 'products') this.products_catalog.push({id: Math.random(), ...payload});
+                                else if(type === 'taxes') this.taxes.push({id: Math.random(), ...payload});
+                                else this.suppliers.push({id: Math.random(), ...payload});
+                            }
+                            count++;
                         }
+                        alert(`${count} registros importados com sucesso!`);
+                        event.target.value = '';
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    // --- CSV (comportamento original) ---
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        const text = e.target.result;
+                        const rows = text.split('\n').filter(row => row.trim() !== '');
+                        
+                        let count = 0;
+                        const colName = type === 'clients' ? 'clientes' : (type === 'products' ? 'produtos' : (type === 'suppliers' ? 'fornecedores' : 'impostos'));
+                        const today = new Date().toISOString().split('T')[0];
+                        
+                        for (let i = 1; i < rows.length; i++) {
+                            const cols = rows[i].split(';'); 
+                            const finalCols = cols.length > 1 ? cols : rows[i].split(','); 
+                            
+                            if (finalCols.length < 2) continue;
 
-                        if (db) await addDoc(collection(db, colName), payload);
-                        else {
-                            if(type === 'clients') this.clients.push({id: Math.random(), ...payload});
-                            else if(type === 'products') this.products_catalog.push({id: Math.random(), ...payload});
-                            else if(type === 'taxes') this.taxes.push({id: Math.random(), ...payload});
-                            else this.suppliers.push({id: Math.random(), ...payload});
+                            let payload = {};
+                            if (type === 'clients') {
+                                const tipoRaw = (finalCols[4]?.trim() || 'Juridica').toLowerCase();
+                                const tipoFinal = tipoRaw.includes('fisica') ? 'Fisica' : 'Juridica';
+
+                                payload = {
+                                    code: finalCols[0]?.trim() || '',
+                                    document: finalCols[1]?.trim() || '',
+                                    name: finalCols[2]?.trim() || '',
+                                    fantasy: finalCols[3]?.trim() || '',
+                                    type: tipoFinal,
+                                    phone: this.formatPhoneOnImport(finalCols[5]?.trim()),
+                                    cell: this.formatPhoneOnImport(finalCols[6]?.trim()),
+                                    registerDate: today, 
+                                    email: finalCols[7]?.trim() || '', 
+                                    zip: finalCols[8]?.trim() || '',
+                                    address: finalCols[9]?.trim() || '',
+                                    number: finalCols[10]?.trim() || '',
+                                    complement: finalCols[11]?.trim() || '',
+                                    district: finalCols[12]?.trim() || '',
+                                    city: finalCols[13]?.trim() || '',
+                                    state: finalCols[14]?.trim() || '',
+                                    notes: finalCols[15]?.trim() || '',
+                                    createdAt: { seconds: Date.now() / 1000 }
+                                };
+                            } else if (type === 'products') {
+                                payload = {
+                                    code: finalCols[0]?.trim() || '',
+                                    idCode: finalCols[1]?.trim() || '',
+                                    description: finalCols[2]?.trim() || '',
+                                    price: parseFloat(finalCols[3]?.trim().replace(',','.')) || 0,
+                                    group: finalCols[4]?.trim() || '',
+                                    subgroup: finalCols[5]?.trim() || '',
+                                    model: finalCols[6]?.trim() || '',
+                                    costPrice: parseFloat(finalCols[7]?.trim().replace(',','.')) || 0,
+                                    registerDate: today, 
+                                    supplier: finalCols[9]?.trim() || '',
+                                    ncm: finalCols[10]?.trim() || '',
+                                    taxCode: finalCols[11]?.trim() || '',
+                                    unit: finalCols[12]?.trim() || 'UN',
+                                    createdAt: { seconds: Date.now() / 1000 }
+                                };
+                            } else if (type === 'taxes') {
+                                payload = {
+                                    AP_NCM: finalCols[0]?.trim() || '',
+                                    AR_COFINS: parseFloat(finalCols[1]?.trim().replace(',','.')) || 0,
+                                    AR_CSLL: parseFloat(finalCols[2]?.trim().replace(',','.')) || 0,
+                                    AR_ICMS: parseFloat(finalCols[3]?.trim().replace(',','.')) || 0,
+                                    AR_IPI: parseFloat(finalCols[4]?.trim().replace(',','.')) || 0,
+                                    AR_IR: parseFloat(finalCols[5]?.trim().replace(',','.')) || 0,
+                                    AR_ISS: parseFloat(finalCols[6]?.trim().replace(',','.')) || 0,
+                                    AR_ST_MVA: parseFloat(finalCols[7]?.trim().replace(',','.')) || 0,
+                                    AR_PIS: parseFloat(finalCols[8]?.trim().replace(',','.')) || 0,
+                                    AR_BASE_ICMS: parseFloat(finalCols[9]?.trim().replace(',','.')) || 0,
+                                    AR_BASE_IPI: parseFloat(finalCols[10]?.trim().replace(',','.')) || 0,
+                                    AR_ESTADO: finalCols[11]?.trim() || '',
+                                    AR_TIPOCLI: finalCols[12]?.trim() || '',
+                                    CODIGOID: finalCols[13]?.trim() || '',
+                                    AR_CODIGO_DAP: finalCols[14]?.trim() || '',
+                                    AR_OPERACAO: finalCols[15]?.trim() || '',
+                                    AR_ST: finalCols[16]?.trim() || '',
+                                    AR_ICM_SITT: finalCols[17]?.trim() || '',
+                                    AR_IPI_SITT: finalCols[18]?.trim() || '',
+                                    AR_COF_SITT: finalCols[19]?.trim() || '',
+                                    AR_PIS_SITT: finalCols[20]?.trim() || '',
+                                    AR_ISS_SITT: finalCols[21]?.trim() || '',
+                                    AR_CFOP: finalCols[22]?.trim() || '',
+                                    AR_CSOSN: finalCols[23]?.trim() || '',
+                                    AR_RED_ISMST: parseFloat(finalCols[24]?.trim().replace(',','.')) || 0,
+                                    AR_FILIAL: finalCols[25]?.trim() || '',
+                                    AR_PESSOA: finalCols[26]?.trim() || '',
+                                    AR_PER_FCP: parseFloat(finalCols[27]?.trim().replace(',','.')) || 0,
+                                    AR_PER_ICMS_I: parseFloat(finalCols[28]?.trim().replace(',','.')) || 0,
+                                    AR_PER_ICMS_P: parseFloat(finalCols[29]?.trim().replace(',','.')) || 0,
+                                    createdAt: { seconds: Date.now() / 1000 }
+                                };
+                            } else if (type === 'suppliers') {
+                                payload = {
+                                    companyName: finalCols[0]?.trim() || '',
+                                    document: finalCols[1]?.trim() || '',
+                                    legalName: finalCols[2]?.trim() || '',
+                                    zip: finalCols[3]?.trim() || '',
+                                    address: finalCols[4]?.trim() || '',
+                                    number: finalCols[5]?.trim() || '',
+                                    complement: finalCols[6]?.trim() || '',
+                                    district: finalCols[7]?.trim() || '',
+                                    city: finalCols[8]?.trim() || '',
+                                    phone: this.formatPhoneOnImport(finalCols[9]?.trim()),
+                                    email: finalCols[10]?.trim() || '',
+                                    contactName: finalCols[11]?.trim() || '',
+                                    notes: finalCols[12]?.trim() || '',
+                                    createdAt: { seconds: Date.now() / 1000 }
+                                };
+                            }
+
+                            if (db) await addDoc(collection(db, colName), payload);
+                            else {
+                                if(type === 'clients') this.clients.push({id: Math.random(), ...payload});
+                                else if(type === 'products') this.products_catalog.push({id: Math.random(), ...payload});
+                                else if(type === 'taxes') this.taxes.push({id: Math.random(), ...payload});
+                                else this.suppliers.push({id: Math.random(), ...payload});
+                            }
+                            count++;
                         }
-                        count++;
-                    }
-                    alert(`${count} registros importados com sucesso!`);
-                    event.target.value = ''; 
-                };
-                reader.readAsText(file, 'ISO-8859-1');
+                        alert(`${count} registros importados com sucesso!`);
+                        event.target.value = ''; 
+                    };
+                    reader.readAsText(file, 'ISO-8859-1');
+                }
             },
             
             // --- DELETE ALL PRODUCTS FUNCTION ---
@@ -2430,7 +2726,7 @@
                                     const laborData = { ...data };
                                     delete laborData.id;
                                     laborData.description = "Mão de Obra - " + (data.serviceType || 'Serviço');
-                                    laborData.serviceType = 'Outros'; 
+                                    laborData.serviceType = 'Mão de Obra'; 
                                     laborData.serviceValue = (parseFloat(data.serviceValue) || 0) * 0.20;
                                     laborData.createdAt = new Date(); 
                                     await addDoc(colRef, laborData);
@@ -2620,6 +2916,9 @@
                 this.saveAsNewClient = false;
                 this.hasLabor = false; 
                 this.filterId = ''; 
+                this.clientSearchQuery = '';
+                this.clientSearchOpen = false;
+                this.selectedClientName = '';
                 this.costChecks = { material: false, rawMaterial: false, meal: false, painting: false, operational: false, transport: false, unforeseen: false, tax: false };
                 
                 if(this.currentView === 'kanban' || this.currentView === 'list' || this.currentView === 'counter') {
