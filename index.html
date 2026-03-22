@@ -2322,7 +2322,7 @@
                     doc.line(margin, y, pageW - margin, y);
                     y += 8;
 
-                    // --- DADOS DO CLIENTE ---
+                    // --- 1. DADOS DO CLIENTE ---
                     doc.setFillColor(...lightBg);
                     doc.roundedRect(margin, y, contentW, 30, 2, 2, 'F');
                     doc.setFontSize(8);
@@ -2349,56 +2349,9 @@
 
                     y += 36;
 
-                    // --- VALORES ---
-                    doc.setFillColor(...brandColor);
-                    doc.roundedRect(margin, y, contentW, 22, 2, 2, 'F');
-                    doc.setTextColor(255, 255, 255);
-                    doc.setFontSize(8);
-                    doc.setFont('helvetica', 'normal');
-
-                    const valCols = contentW / 3;
-                    if (item.category !== 'counter') {
-                        doc.text('VALOR CONTRATO', margin + 4, y + 6);
-                        doc.setFontSize(12);
-                        doc.setFont('helvetica', 'bold');
-                        doc.text(this.formatMoney(item.contractValue), margin + 4, y + 15);
-                    }
-
-                    doc.setFontSize(8);
-                    doc.setFont('helvetica', 'normal');
-                    doc.text('VALOR SERVIÇO', margin + valCols + 4, y + 6);
-                    doc.setFontSize(12);
-                    doc.setFont('helvetica', 'bold');
-                    doc.text(this.formatMoney(item.serviceValue), margin + valCols + 4, y + 15);
-
-                    doc.setFontSize(8);
-                    doc.setFont('helvetica', 'normal');
-                    doc.text('TOTAL PRODUTOS', margin + valCols * 2 + 4, y + 6);
-                    doc.setFontSize(12);
-                    doc.setFont('helvetica', 'bold');
+                    // --- 2. TABELA DE PRODUTOS ---
                     const prodTotal = (item.productLines || []).reduce((a, l) => a + (parseFloat(l.total) || 0), 0);
-                    doc.text(this.formatMoney(prodTotal), margin + valCols * 2 + 4, y + 15);
-
-                    y += 28;
-
-                    // --- DESCRIÇÃO ---
-                    if (item.description) {
-                        doc.setFontSize(8);
-                        doc.setFont('helvetica', 'bold');
-                        doc.setTextColor(...brandColor);
-                        doc.text('DESCRIÇÃO', margin, y);
-                        y += 5;
-                        doc.setFont('helvetica', 'normal');
-                        doc.setTextColor(...darkColor);
-                        doc.setFontSize(9);
-                        const descLines = doc.splitTextToSize(item.description, contentW);
-                        doc.text(descLines, margin, y);
-                        y += descLines.length * 4.5 + 4;
-                    }
-
-                    // --- TABELA DE PRODUTOS ---
                     if (item.productLines && item.productLines.length > 0) {
-                        if (y > 230) { doc.addPage(); y = 20; }
                         doc.setFontSize(8);
                         doc.setFont('helvetica', 'bold');
                         doc.setTextColor(...brandColor);
@@ -2442,84 +2395,90 @@
                             },
                             alternateRowStyles: { fillColor: [248, 250, 252] }
                         });
-                        y = doc.lastAutoTable.finalY + 6;
+                        y = doc.lastAutoTable.finalY + 8;
                     }
 
-                    // --- CONDIÇÕES DE PAGAMENTO ---
-                    if (item.paymentMethod || item.installments || item.paymentTerm) {
-                        if (y > 240) { doc.addPage(); y = 20; }
+                    // --- 3. CONDIÇÕES DE PAGAMENTO ---
+                    if (item.paymentMethod || item.installments || item.paymentTerm || item.downPayment) {
+                        if (y > 230) { doc.addPage(); y = 20; }
 
-                        doc.setFillColor(...lightBg);
-                        doc.roundedRect(margin, y, contentW, 32, 2, 2, 'F');
                         doc.setFontSize(8);
                         doc.setFont('helvetica', 'bold');
                         doc.setTextColor(...brandColor);
-                        doc.text('CONDIÇÕES DE PAGAMENTO', margin + 4, y + 5);
+                        doc.text('CONDIÇÕES DE PAGAMENTO', margin, y);
+                        y += 3;
 
-                        doc.setFontSize(8);
-                        doc.setFont('helvetica', 'normal');
-                        doc.setTextColor(...darkColor);
-                        let payY = y + 12;
-                        const halfW = contentW / 2;
+                        const payData = [];
+                        const payRow1 = [];
+                        const payRow2 = [];
+                        payRow1.push(item.paymentMethod || '-');
+                        payRow1.push(item.installments === 'Personalizado' ? (item.customInstallments || '') + 'x' : (item.installments || '-'));
+                        payRow1.push(item.downPayment ? this.formatMoney(item.downPayment) : '-');
+                        payRow1.push(item.paymentTerm === 'Outro' ? (item.customPaymentTerm || '-') : (item.paymentTerm ? item.paymentTerm + ' dias' : '-'));
 
-                        if (item.paymentMethod) doc.text('Forma: ' + item.paymentMethod, margin + 4, payY);
-                        if (item.installments) doc.text('Parcelamento: ' + (item.installments === 'Personalizado' ? (item.customInstallments || '') + 'x' : item.installments), margin + halfW, payY);
-                        payY += 6;
-                        if (item.downPayment) doc.text('Entrada: ' + this.formatMoney(item.downPayment), margin + 4, payY);
-                        if (item.paymentTerm) doc.text('Prazo: ' + (item.paymentTerm === 'Outro' ? (item.customPaymentTerm || '') : item.paymentTerm + ' dias'), margin + halfW, payY);
-                        payY += 6;
+                        doc.autoTable({
+                            startY: y,
+                            margin: { left: margin, right: margin },
+                            head: [['Forma de Pagamento', 'Parcelamento', 'Entrada', 'Prazo']],
+                            body: [payRow1],
+                            theme: 'grid',
+                            headStyles: { fillColor: [100, 116, 139], textColor: 255, fontSize: 7, fontStyle: 'bold', halign: 'center' },
+                            bodyStyles: { fontSize: 8, halign: 'center', textColor: darkColor },
+                        });
+                        y = doc.lastAutoTable.finalY + 2;
+
                         if (item.paymentNotes) {
                             doc.setFontSize(7);
+                            doc.setFont('helvetica', 'italic');
                             doc.setTextColor(...grayColor);
-                            const noteLines = doc.splitTextToSize('Obs: ' + item.paymentNotes, contentW - 8);
-                            doc.text(noteLines, margin + 4, payY);
+                            const noteLines = doc.splitTextToSize('Obs: ' + item.paymentNotes, contentW);
+                            doc.text(noteLines, margin, y + 3);
+                            y += noteLines.length * 3.5 + 4;
                         }
-                        y += 38;
+                        y += 6;
                     }
 
-                    // --- DATAS ---
-                    if (y > 250) { doc.addPage(); y = 20; }
-                    doc.setFontSize(8);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(...brandColor);
-                    doc.text('DATAS DE ACOMPANHAMENTO', margin, y);
-                    y += 3;
+                    // --- 4. DESCRIÇÃO ---
+                    if (item.description) {
+                        if (y > 245) { doc.addPage(); y = 20; }
+                        doc.setFillColor(...lightBg);
+                        const descLines = doc.splitTextToSize(item.description, contentW - 8);
+                        const descBoxH = Math.max(16, descLines.length * 4.5 + 10);
+                        doc.roundedRect(margin, y, contentW, descBoxH, 2, 2, 'F');
 
-                    const fdr = (d) => this.formatDateRaw ? this.formatDateRaw(d) : (d || '-');
-                    doc.autoTable({
-                        startY: y,
-                        margin: { left: margin, right: margin },
-                        head: [['Orçamento', 'Contrato', 'Faturamento', 'Recebimento']],
-                        body: [[ fdr(item.budgetDate), fdr(item.contractDate), fdr(item.billingDate), fdr(item.revenueDate) ]],
-                        theme: 'grid',
-                        headStyles: { fillColor: [100, 116, 139], textColor: 255, fontSize: 7, fontStyle: 'bold', halign: 'center' },
-                        bodyStyles: { fontSize: 8, halign: 'center', textColor: darkColor },
-                    });
-                    y = doc.lastAutoTable.finalY + 10;
+                        doc.setFontSize(8);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor(...brandColor);
+                        doc.text('DESCRIÇÃO / OBSERVAÇÕES', margin + 4, y + 5);
+
+                        doc.setFont('helvetica', 'normal');
+                        doc.setTextColor(...darkColor);
+                        doc.setFontSize(8);
+                        doc.text(descLines, margin + 4, y + 12);
+                        y += descBoxH + 6;
+                    }
 
                     // --- RODAPÉ ---
-                    const footerY = doc.internal.pageSize.getHeight() - 15;
+                    const footerY = doc.internal.pageSize.getHeight() - 12;
                     doc.setDrawColor(200, 200, 200);
                     doc.setLineWidth(0.3);
-                    doc.line(margin, footerY - 4, pageW - margin, footerY - 4);
+                    doc.line(margin, footerY - 3, pageW - margin, footerY - 3);
                     doc.setFontSize(7);
                     doc.setFont('helvetica', 'normal');
                     doc.setTextColor(...grayColor);
                     doc.text('Calhas Norte - Sistema de Gestão de Obras', margin, footerY);
                     doc.text('Documento gerado em ' + new Date().toLocaleString('pt-BR'), pageW - margin, footerY, { align: 'right' });
 
-                    // Assinaturas
-                    if (y < footerY - 35) {
-                        const sigY = footerY - 25;
-                        doc.setDrawColor(...grayColor);
-                        doc.setLineWidth(0.3);
-                        doc.line(margin, sigY, margin + 65, sigY);
-                        doc.line(pageW - margin - 65, sigY, pageW - margin, sigY);
-                        doc.setFontSize(7);
-                        doc.setTextColor(...grayColor);
-                        doc.text('Calhas Norte', margin + 32.5, sigY + 5, { align: 'center' });
-                        doc.text('Cliente', pageW - margin - 32.5, sigY + 5, { align: 'center' });
-                    }
+                    // --- ASSINATURAS (com espaço em branco antes) ---
+                    const sigY = footerY - 20;
+                    doc.setDrawColor(...grayColor);
+                    doc.setLineWidth(0.3);
+                    doc.line(margin, sigY, margin + 70, sigY);
+                    doc.line(pageW - margin - 70, sigY, pageW - margin, sigY);
+                    doc.setFontSize(7);
+                    doc.setTextColor(...grayColor);
+                    doc.text('Calhas Norte', margin + 35, sigY + 4, { align: 'center' });
+                    doc.text('Cliente', pageW - margin - 35, sigY + 4, { align: 'center' });
 
                     const fileName = 'Orcamento_' + (item.customId || 'novo') + '_' + (item.clientName || 'cliente').replace(/[^a-zA-Z0-9]/g, '_') + '.pdf';
                     doc.save(fileName);
