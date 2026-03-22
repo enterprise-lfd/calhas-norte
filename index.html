@@ -13,8 +13,21 @@
     <!-- SheetJS para Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <!-- jsPDF para geração de PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        // Fallback: se unpkg falhar, tentar cdnjs
+        if (!window.jspdf) {
+            var s1 = document.createElement('script');
+            s1.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js';
+            s1.onload = function() {
+                var s2 = document.createElement('script');
+                s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+                document.head.appendChild(s2);
+            };
+            document.head.appendChild(s1);
+        }
+    </script>
     
     <script>
         tailwind.config = {
@@ -2219,7 +2232,26 @@
             async generatePDF() {
                 try {
                     const item = this.currentItem;
-                    if (!window.jspdf) { alert('Biblioteca jsPDF não carregada. Recarregue a página.'); return; }
+                    
+                    // Carregar jsPDF dinamicamente se não estiver disponível
+                    if (!window.jspdf) {
+                        await new Promise((resolve, reject) => {
+                            const s = document.createElement('script');
+                            s.src = 'https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js';
+                            s.onload = () => {
+                                const s2 = document.createElement('script');
+                                s2.src = 'https://unpkg.com/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js';
+                                s2.onload = () => resolve();
+                                s2.onerror = () => resolve(); // continua sem autotable
+                                document.head.appendChild(s2);
+                            };
+                            s.onerror = () => reject(new Error('Não foi possível carregar a biblioteca de PDF.'));
+                            document.head.appendChild(s);
+                        });
+                    }
+                    
+                    if (!window.jspdf) { alert('Não foi possível carregar a biblioteca de PDF. Verifique sua conexão.'); return; }
+                    
                     const { jsPDF } = window.jspdf;
                     const doc = new jsPDF('p', 'mm', 'a4');
                     const pageW = doc.internal.pageSize.getWidth();
